@@ -9,12 +9,12 @@
       "test_to": "2026-10-15",
       "model": {
         "n": 930,
-        "band_accuracy": 0.7183,
+        "band_accuracy": 0.7172,
         "unhealthy_days": 499,
-        "pod_unhealthy": 0.8176,
-        "far_unhealthy": 0.0706,
-        "mae_ugm3": 7.79,
-        "coverage_80": 0.7269
+        "pod_unhealthy": 0.8196,
+        "far_unhealthy": 0.0705,
+        "mae_ugm3": 7.8,
+        "coverage_80": 0.7258
       },
       "persistence": {
         "n": 930,
@@ -49,7 +49,7 @@
         "pod_unhealthy": 0.7495,
         "far_unhealthy": 0.0988,
         "mae_ugm3": 9.92,
-        "coverage_80": 0.7548
+        "coverage_80": 0.7559
       },
       "persistence": {
         "n": 930,
@@ -73,5 +73,5 @@
       "meets_target": false
     }
   },
-  "version": "20261015T0554Z"
+  "version": "20261015T0556Z"
 }
