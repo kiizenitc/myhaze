@@ -127,12 +127,28 @@ export interface MapStation {
   lat: number;
   lon: number;
   bands: Band[];
-  wind_from: (number | null)[];
-  wind_kmh: (number | null)[];
 }
 
 export interface MapData {
   generated_at: string;
   times: string[];
   stations: MapStation[];
+}
+
+export interface WindGrid {
+  lon0: number;
+  lat0: number;
+  dlon: number;
+  dlat: number;
+  nx: number;
+  ny: number;
+}
+
+/** wind.json: 3-hourly frames of the wind ~120 m up, m/s east (u) and north (v), grid rows from the south. */
+export interface WindData {
+  generated_at: string;
+  grid: WindGrid;
+  times: string[];
+  u: (number | null)[][];
+  v: (number | null)[][];
 }

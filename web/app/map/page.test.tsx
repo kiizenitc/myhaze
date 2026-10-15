@@ -13,14 +13,17 @@ vi.mock("next/dynamic", () => ({
 }));
 
 test("the time slider steps through the 48 hours in Malaysia time, with a band legend", async () => {
-  vi.stubGlobal("fetch", vi.fn(async (url: string) => new Response(
-    JSON.stringify(String(url).includes("map.json") ? makeMap() : { generated_at: GENERATED, cells: [] }), { status: 200 })));
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => String(url).includes("wind.json")
+    ? new Response("missing", { status: 404 }) // no wind file yet: the map still works without the flowing wind
+    : new Response(JSON.stringify(String(url).includes("map.json") ? makeMap() : { generated_at: GENERATED, cells: [] }),
+                   { status: 200 })));
   render(<MapPage />);
   const slider = await screen.findByRole("slider", { name: "Time" });
   expect(screen.getByText("Thu 15 Oct 10am")).toBeInTheDocument();
   fireEvent.change(slider, { target: { value: "14" } });
   expect(screen.getByTestId("map")).toHaveTextContent("hour 14");
   expect(screen.getByText("Fri 16 Oct 12am")).toBeInTheDocument();
+  expect(screen.getByText(/Moving lines show the wind/)).toBeInTheDocument();
   for (const word of ["Good", "Moderate", "Unhealthy", "Very unhealthy", "Hazardous"]) {
     expect(screen.getByText(word)).toBeInTheDocument();
   }

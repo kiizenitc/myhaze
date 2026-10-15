@@ -9,7 +9,7 @@ import { SaveToggle } from "@/components/SaveToggle";
 import { BANDS } from "@/lib/bands";
 import { useData } from "@/lib/data";
 import { dateMYT, hourOfIso, weekdayDate } from "@/lib/format";
-import type { Fires, MapData } from "@/lib/types";
+import type { Fires, MapData, WindData } from "@/lib/types";
 
 // MapLibre is large and needs the browser: it loads only on this page, only on the client.
 const FireMap = dynamic(() => import("@/components/FireMap").then((m) => m.FireMap), {
@@ -20,6 +20,7 @@ const FireMap = dynamic(() => import("@/components/FireMap").then((m) => m.FireM
 export default function MapPage() {
   const { data, error } = useData<MapData>("/data/map.json");
   const { data: fires } = useData<Fires>("/data/fires.json");
+  const { data: wind } = useData<WindData>("/data/wind.json");
   const [hour, setHour] = useState(0);
   const [picked, setPicked] = useState<string | null>(null);
   if (!data) {
@@ -34,9 +35,9 @@ export default function MapPage() {
       <h1 className="text-2xl font-semibold">Map</h1>
       <p className="text-[var(--ink-2)]">
         Station dots show the forecast Real Feel. Small dark-red dots are fires seen by satellite on the latest full
-        day. Arrows show where the wind is blowing.
+        day. Moving lines show the wind about 100 m up, which carries the smoke.
       </p>
-      <FireMap map={data} fires={fires} hour={at} onPick={setPicked} />
+      <FireMap map={data} fires={fires} wind={wind} hour={at} time={time} onPick={setPicked} />
       <div>
         <label htmlFor="map-hour" className="font-medium">Time</label>{" "}
         <output htmlFor="map-hour">{`${weekdayDate(dateMYT(time))} ${hourOfIso(time)}`}</output>

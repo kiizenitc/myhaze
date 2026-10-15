@@ -16,21 +16,15 @@ export interface StationProps {
   id: string;
   name: string;
   band: Band;
-  wind_to?: number;
-  wind_kmh?: number;
 }
 
 export function stationsAt(map: MapData, hour: number): Collection<StationProps> {
   return {
     type: "FeatureCollection",
-    features: map.stations.map((s) => {
-      const properties: StationProps = { id: s.id, name: s.name, band: s.bands[hour] };
-      const from = s.wind_from[hour];
-      const kmh = s.wind_kmh[hour];
-      if (from !== null && from !== undefined) properties.wind_to = (from + 180) % 360;
-      if (kmh !== null && kmh !== undefined) properties.wind_kmh = kmh;
-      return { type: "Feature", geometry: { type: "Point", coordinates: [s.lon, s.lat] }, properties };
-    }),
+    features: map.stations.map((s) => ({
+      type: "Feature", geometry: { type: "Point", coordinates: [s.lon, s.lat] },
+      properties: { id: s.id, name: s.name, band: s.bands[hour] },
+    })),
   };
 }
 
