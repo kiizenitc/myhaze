@@ -28,3 +28,4 @@ web/.next/
 web/out/
 web/public/data/
 web/tsconfig.tsbuildinfo
+web/public/maplibre-gl-worker.mjs

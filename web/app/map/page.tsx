@@ -30,7 +30,7 @@ export default function MapPage() {
   const time = data.times[at];
   const station = data.stations.find((s) => s.id === picked);
   return (
-    <section className="grid gap-3">
+    <section className="grid grid-cols-1 gap-3">
       <h1 className="text-2xl font-semibold">Map</h1>
       <p className="text-[var(--ink-2)]">
         Station dots show the forecast Real Feel. Small dark-red dots are fires seen by satellite on the latest full

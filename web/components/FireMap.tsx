@@ -11,6 +11,9 @@ import { firesCollection, stationsAt } from "@/lib/geojson";
 import type { Fires, MapData } from "@/lib/types";
 
 const STYLE = "https://tiles.openfreemap.org/styles/positron";
+const ARROW_COLOUR = "#1f2937"; // the Positron basemap is light in both themes, so the arrows stay dark
+// Copied from node_modules at build time (scripts/copy-maplibre-worker.mjs).
+const WORKER_URL = "/maplibre-gl-worker.mjs";
 
 function cssVar(name: string, fallback: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
@@ -45,8 +48,11 @@ export function FireMap({ map, fires, hour, onPick }: FireMapProps) {
   });
 
   useEffect(() => {
+    maplibregl.setWorkerUrl(WORKER_URL);
     const m = new maplibregl.Map({
-      container: box.current!, style: STYLE, center: [108.5, 3.5], zoom: 4.4, minZoom: 3, maxZoom: 11,
+      // Peninsular Malaysia to Sabah, fitted to whatever screen this is.
+      container: box.current!, style: STYLE, bounds: [[99.6, 0.6], [119.4, 7.4]], fitBoundsOptions: { padding: 16 },
+      minZoom: 3, maxZoom: 11,
       attributionControl: { compact: true },
     });
     instance.current = m;
@@ -55,7 +61,7 @@ export function FireMap({ map, fires, hour, onPick }: FireMapProps) {
       const now = latest.current;
       const colourByBand = ["match", ["get", "band"], ...BANDS.flatMap((b) => [b, cssVar(`--band-${b}`, "#9ca3af")]),
         "#9ca3af"] as unknown as ExpressionSpecification;
-      m.addImage("wind-arrow", arrow(cssVar("--ink", "#111827")));
+      m.addImage("wind-arrow", arrow(ARROW_COLOUR));
       m.addSource("fires", { type: "geojson", data: firesCollection(now.fires) });
       m.addLayer({ id: "fires", type: "circle", source: "fires", paint: {
         "circle-radius": ["interpolate", ["linear"], ["get", "frp"], 0, 2, 200, 4, 2000, 9],

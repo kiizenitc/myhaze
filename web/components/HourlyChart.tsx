@@ -8,7 +8,7 @@ import type { Hour } from "@/lib/types";
 
 const W = 720;
 const H = 290;
-const LEFT = 40;
+const LEFT = 50;
 const RIGHT = 712;
 const TOP = 12;
 const BASE = 196; // bottom of the API plot
@@ -82,57 +82,65 @@ export function HourlyChart({ hours }: { hours: Hour[] }) {
         </button>
       </div>
       {view === "chart" ? (
-        <div className="relative">
-          <svg role="img" aria-label="Hour-by-hour forecast chart: Real Feel with its likely range, and the official API"
-               viewBox={`0 0 ${W} ${H}`} className="w-full touch-none select-none" tabIndex={0}
-               onMouseMove={(e) => pick(e.clientX, e.currentTarget.getBoundingClientRect())}
-               onPointerMove={(e) => pick(e.clientX, e.currentTarget.getBoundingClientRect())}
-               onMouseLeave={() => setActive(null)} onKeyDown={onKey}>
-            {GRID.filter((g) => g <= yMax).map((g) => (
-              <g key={g}>
-                <line x1={LEFT} x2={RIGHT} y1={y(g)} y2={y(g)} stroke="var(--line)" />
-                <text x={LEFT - 6} y={y(g) + 4} textAnchor="end" fontSize="11" fill="var(--ink-2)">{g}</text>
-              </g>
-            ))}
-            <line x1={LEFT} x2={RIGHT} y1={BASE} y2={BASE} stroke="var(--ink-2)" />
-            {hours.map((h, i) => hourOfIso(h.t) === "12am" ? (
-              <g key={h.t}>
-                <line x1={x(i)} x2={x(i)} y1={TOP} y2={WIND_Y + 10} stroke="var(--line)" strokeDasharray="2 3" />
-                <text x={x(i) + 4} y={TOP + 10} fontSize="11" fill="var(--ink-2)">{weekdayDate(dateMYT(h.t)).split(" ")[0]}</text>
-              </g>
-            ) : null)}
-            {[0, 6, 12, 18, 24, 30, 36, 42].filter((i) => i < hours.length).map((i) => (
-              <text key={i} x={x(i)} y={BASE + 14} textAnchor="middle" fontSize="11" fill="var(--ink-2)">{hourOfIso(hours[i].t)}</text>
-            ))}
-            <path data-series="range" d={range} fill="var(--ink)" opacity={0.12} />
-            <path data-series="real-feel" d={line(hours.map((h) => h.rf))} fill="none" stroke="var(--ink)" strokeWidth={2} />
-            <path data-series="official" d={line(hours.map((h) => h.official_api))} fill="none" stroke="var(--accent)"
-                  strokeWidth={2} strokeDasharray="6 4" />
-            <text x={LEFT - 6} y={RAIN_BASE} textAnchor="end" fontSize="11" fill="var(--ink-2)">Rain</text>
-            {hours.map((h, i) => {
-              const mm = h.rain_mm ?? 0;
-              const height = (mm / maxRain) * (RAIN_BASE - RAIN_TOP);
-              return mm >= 0.1 ? <rect key={h.t} x={x(i) - 4} y={RAIN_BASE - height} width={8} height={height} rx={2}
-                                       fill="var(--accent)" opacity={0.7} /> : null;
-            })}
-            <text x={LEFT - 6} y={WIND_Y + 4} textAnchor="end" fontSize="11" fill="var(--ink-2)">Wind</text>
-            {hours.map((h, i) => i % 3 === 0 && h.wind_from !== null ? (
-              <path key={h.t} d={ARROW} fill="var(--ink-2)" transform={`translate(${x(i)},${WIND_Y}) rotate(${(h.wind_from + 180) % 360})`} />
-            ) : null)}
-            {active !== null && <line x1={x(active)} x2={x(active)} y1={TOP} y2={WIND_Y + 10} stroke="var(--ink)" />}
-          </svg>
-          {tip && active !== null && (
-            <div role="tooltip" className="pointer-events-none absolute top-0 rounded-lg border border-[var(--line)] bg-[var(--card)] p-2 text-sm shadow"
-                 style={{ left: `${(x(active) / W) * 100}%`, transform: `translateX(${shift})` }}>
-              <p className="font-semibold">{when(tip.t)}</p>
-              <p>{`Real Feel ${tip.rf} ${BAND_LABEL[tip.band]}`}</p>
-              <p>{`Likely ${tip.rf_low}–${tip.rf_high}`}</p>
-              <p>{`Official API ${tip.official_api ?? "–"}`}</p>
-              {(tip.rain_mm ?? 0) >= 0.1 && <p>{`Rain ${(tip.rain_mm ?? 0).toFixed(1)} mm`}</p>}
+        <>
+          {/* On a phone the 48 hours scroll sideways, so the labels stay readable instead of shrinking to a few pixels. */}
+          <div className="overflow-x-auto">
+            <div className="relative w-full min-w-[660px]">
+              <svg role="img" aria-label="Hour-by-hour forecast chart: Real Feel with its likely range, and the official API"
+                   viewBox={`0 0 ${W} ${H}`} className="w-full touch-pan-x select-none" tabIndex={0}
+                   onMouseMove={(e) => pick(e.clientX, e.currentTarget.getBoundingClientRect())}
+                   onPointerMove={(e) => pick(e.clientX, e.currentTarget.getBoundingClientRect())}
+                   onClick={(e) => pick(e.clientX, e.currentTarget.getBoundingClientRect())}
+                   onMouseLeave={() => setActive(null)} onKeyDown={onKey}>
+                {GRID.filter((g) => g <= yMax).map((g) => (
+                  <g key={g}>
+                    <line x1={LEFT} x2={RIGHT} y1={y(g)} y2={y(g)} stroke="var(--line)" />
+                    <text x={LEFT - 6} y={y(g) + 4} textAnchor="end" fontSize="12" fill="var(--ink-2)">{g}</text>
+                  </g>
+                ))}
+                <line x1={LEFT} x2={RIGHT} y1={BASE} y2={BASE} stroke="var(--ink-2)" />
+                {hours.map((h, i) => hourOfIso(h.t) === "12am" ? (
+                  <g key={h.t}>
+                    <line x1={x(i)} x2={x(i)} y1={TOP} y2={WIND_Y + 10} stroke="var(--line)" strokeDasharray="2 3" />
+                    <text x={x(i) + 4} y={TOP + 10} fontSize="12" fill="var(--ink-2)">{weekdayDate(dateMYT(h.t)).split(" ")[0]}</text>
+                  </g>
+                ) : null)}
+                {[0, 6, 12, 18, 24, 30, 36, 42].filter((i) => i < hours.length).map((i) => (
+                  <text key={i} x={x(i)} y={BASE + 14} textAnchor="middle" fontSize="12" fill="var(--ink-2)">{hourOfIso(hours[i].t)}</text>
+                ))}
+                <path data-series="range" d={range} fill="var(--ink)" opacity={0.12} />
+                <path data-series="real-feel" d={line(hours.map((h) => h.rf))} fill="none" stroke="var(--ink)" strokeWidth={2} />
+                <path data-series="official" d={line(hours.map((h) => h.official_api))} fill="none" stroke="var(--accent)"
+                      strokeWidth={2} strokeDasharray="6 4" />
+                <text x={LEFT - 14} y={RAIN_BASE} textAnchor="end" fontSize="12" fill="var(--ink-2)">Rain</text>
+                {hours.map((h, i) => {
+                  const mm = h.rain_mm ?? 0;
+                  const height = (mm / maxRain) * (RAIN_BASE - RAIN_TOP);
+                  return mm >= 0.1 ? <rect key={h.t} x={x(i) - 4} y={RAIN_BASE - height} width={8} height={height} rx={2}
+                                           fill="var(--accent)" opacity={0.7} /> : null;
+                })}
+                <text x={LEFT - 14} y={WIND_Y + 4} textAnchor="end" fontSize="12" fill="var(--ink-2)">Wind</text>
+                {hours.map((h, i) => i % 3 === 0 && h.wind_from !== null ? (
+                  <path key={h.t} d={ARROW} fill="var(--ink-2)" transform={`translate(${x(i)},${WIND_Y}) rotate(${(h.wind_from + 180) % 360})`} />
+                ) : null)}
+                {active !== null && <line x1={x(active)} x2={x(active)} y1={TOP} y2={WIND_Y + 10} stroke="var(--ink)" />}
+              </svg>
+              {tip && active !== null && (
+                <div role="tooltip" className="pointer-events-none absolute top-0 rounded-lg border border-[var(--line)] bg-[var(--card)] p-2 text-sm shadow"
+                     style={{ left: `${(x(active) / W) * 100}%`, transform: `translateX(${shift})` }}>
+                  <p className="font-semibold">{when(tip.t)}</p>
+                  <p>{`Real Feel ${tip.rf} ${BAND_LABEL[tip.band]}`}</p>
+                  <p>{`Likely ${tip.rf_low}–${tip.rf_high}`}</p>
+                  <p>{`Official API ${tip.official_api ?? "–"}`}</p>
+                  {(tip.rain_mm ?? 0) >= 0.1 && <p>{`Rain ${(tip.rain_mm ?? 0).toFixed(1)} mm`}</p>}
+                </div>
+              )}
             </div>
-          )}
-          <p className="mt-1 text-xs text-[var(--ink-2)]">Arrows point where the wind is blowing. Times are Malaysia time.</p>
-        </div>
+          </div>
+          <p className="mt-1 text-xs text-[var(--ink-2)]">
+            Arrows point where the wind is blowing. Times are Malaysia time. Tap the chart for an hour&apos;s numbers.
+          </p>
+        </>
       ) : (
         <div className="max-h-[480px] overflow-auto">
           <table className="w-full text-left text-sm">

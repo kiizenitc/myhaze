@@ -63,7 +63,7 @@ export function StationView() {
     );
   }
   return (
-    <article className="grid gap-4">
+    <article className="grid grid-cols-1 gap-4">
       <StaleBanner generatedAt={data.generated_at} />
       <header className="flex flex-wrap items-end justify-between gap-2">
         <div>
