@@ -52,3 +52,12 @@ AQICN_FEED_OFFLINE = {"status": "ok", "data": {
     "idx": 4004, "aqi": "-", "time": {"iso": "2026-10-15T08:00:00+08:00"}, "iaqi": {}}}
 
 AQICN_FEED_ERROR = {"status": "error", "data": "Unknown station"}
+
+CAMS_TWO_STATIONS = [
+    {"latitude": 6.4, "longitude": 100.2, "hourly_units": {"time": "iso8601", "pm2_5": "μg/m³"},
+     "hourly": {"time": ["2026-10-15T00:00", "2026-10-15T01:00", "2026-10-15T02:00"],
+                "pm2_5": [20.1, None, 22.5]}},
+    {"latitude": 3.0, "longitude": 101.5, "hourly_units": {"time": "iso8601", "pm2_5": "μg/m³"},
+     "hourly": {"time": ["2026-10-15T00:00", "2026-10-15T01:00", "2026-10-15T02:00"],
+                "pm2_5": [61.0, 64.2, 70.9]}},
+]
