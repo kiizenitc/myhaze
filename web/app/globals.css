@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --page: #f4f5f7;
+  --card: #ffffff;
+  --ink: #111827;
+  --ink-2: #4b5563;
+  --line: #e2e5ea;
+  --accent: #1d4ed8;
+  /* DOE's API colours, always shown with the band word. */
+  --band-good: #2563eb;
+  --on-good: #ffffff;
+  --band-moderate: #16a34a;
+  --on-moderate: #ffffff;
+  --band-unhealthy: #facc15;
+  --on-unhealthy: #422006;
+  --band-very_unhealthy: #f97316;
+  --on-very_unhealthy: #431407;
+  --band-hazardous: #dc2626;
+  --on-hazardous: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --page: #0b0f17;
+    --card: #151b26;
+    --ink: #f3f4f6;
+    --ink-2: #aab2bf;
+    --line: #2a3446;
+    --accent: #93c5fd;
+  }
+}
+
+html,
+body {
+  background: var(--page);
+  color: var(--ink);
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
