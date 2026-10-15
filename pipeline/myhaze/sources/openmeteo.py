@@ -117,6 +117,13 @@ def fetch_weather_forecast(client: httpx.Client, points: list[Station], days: in
                             "Open-Meteo forecast")
 
 
+def fetch_wind_grid(client: httpx.Client, points: list[Station], days: int = 3) -> list[HourlyWeather]:
+    """Wind about 120 m up at grid points, for the map's flowing-wind layer (3 days from today's UTC midnight)."""
+    return _batched_weather(client, FORECAST_URL, points,
+                            {"hourly": "wind_speed_120m,wind_direction_120m", "forecast_days": days, "timezone": "GMT"},
+                            "Open-Meteo wind grid")
+
+
 def fetch_previous_runs(client: httpx.Client, points: list[Station], start: date, end: date,
                         lead: int) -> list[HourlyWeather]:
     suffix = f"_previous_day{lead}"

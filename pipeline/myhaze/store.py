@@ -212,6 +212,15 @@ class Store:
         issued = min((r[1] for r in rows), default=None)
         return issued, latest
 
+    def save_wind_grid(self, issued_at: datetime, field: dict, name: str = "latest") -> None:
+        self.conn.execute("insert into wind_grid (name, issued_at, field) values (%s, %s, %s) on conflict (name) "
+                          "do update set issued_at = excluded.issued_at, field = excluded.field",
+                          (name, issued_at, Jsonb(field)))
+
+    def wind_grid(self, name: str = "latest") -> tuple[datetime | None, dict | None]:
+        row = self.conn.execute("select issued_at, field from wind_grid where name = %s", (name,)).fetchone()
+        return (row[0], row[1]) if row else (None, None)
+
     def upsert_cams_daily(self, rows: list[tuple[str, date, float]]) -> int:
         known = self._known_ids()
         keep = [r for r in rows if r[0] in known]

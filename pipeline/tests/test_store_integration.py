@@ -184,3 +184,13 @@ def test_forecast_runs_latest_obs_and_doe_daily_max(store):
     finally:
         store.conn.execute("delete from forecast_runs where station_id = %s", (TEST_ID,))
         store.conn.execute("delete from verification_daily where day = %s", (date(1999, 1, 6),))
+
+
+def test_wind_grid_roundtrip(store):
+    field = {"times": ["2026-10-15T10:00:00Z"], "u": [[1.5, None]], "v": [[-0.5, None]]}
+    store.save_wind_grid(OLD_HOUR, field, name="test")
+    try:
+        assert store.wind_grid(name="test") == (OLD_HOUR, field)
+        assert store.wind_grid(name="missing") == (None, None)
+    finally:
+        store.conn.execute("delete from wind_grid where name = 'test'")

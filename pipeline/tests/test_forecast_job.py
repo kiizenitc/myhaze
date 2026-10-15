@@ -88,3 +88,26 @@ def test_live_daily_inputs_are_refreshed_before_forecasting(monkeypatch):
     calls.clear()
     forecast.refresh_daily_inputs(None, InputsStore(date(2026, 10, 19)), None, today)  # already up to date
     assert calls == [("archive", today)]
+
+
+class WindStore:
+    def __init__(self, issued, field):
+        self.stored = (issued, field)
+        self.saved = None
+
+    def wind_grid(self):
+        return self.stored
+
+    def save_wind_grid(self, issued, field):
+        self.saved = (issued, field)
+
+
+def test_the_wind_grid_is_fetched_only_when_the_stored_one_is_old(monkeypatch):
+    fetched = []
+    monkeypatch.setattr(forecast.openmeteo, "fetch_wind_grid", lambda client, points: fetched.append(len(points)) or [])
+    fresh = WindStore(NOW - timedelta(hours=1), {"times": ["x"], "u": [], "v": []})
+    assert forecast.refresh_wind_grid(None, fresh, NOW) == {"times": ["x"], "u": [], "v": []}
+    assert fetched == [] and fresh.saved is None
+    old = WindStore(NOW - timedelta(hours=4), {"times": ["old"], "u": [], "v": []})
+    field = forecast.refresh_wind_grid(None, old, NOW)
+    assert fetched == [27 * 17] and old.saved == (NOW, field) and field["times"] == []

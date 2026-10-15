@@ -10,6 +10,8 @@ fires.json          {"generated_at", "cells": [[lat, lon, frp], ...]}
 accuracy.json       {"version", "backtest": {...} | null, "track_record": {...}}
 map.json            {"generated_at", "times": [t x 48], "stations": [{"id", "name", "state", "lat", "lon",
                      "bands": [band x 48], "wind_from": [deg|null x 48], "wind_kmh": [km/h|null x 48]}]}
+wind.json           {"generated_at", "grid": {"lon0", "lat0", "dlon", "dlat", "nx", "ny"}, "times": [t x 16],
+                     "u": [[m/s|null x nx*ny] x 16], "v": [...]}  (every 3 h; grid rows from the south, u east, v north)
 
 NOW      {"real_feel", "real_feel_band", "pm25", "real_feel_hour", "official_api", "official_band", "official_hour"}
          (real_feel and pm25 are this hour's reading; null for stations without an hourly feed)
@@ -27,6 +29,7 @@ import json
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 
+from . import wind
 from .config import MYT
 from .convert import BANDS, band, ugm3_to_api
 from .model.hourly import HourlyPath
@@ -167,6 +170,17 @@ def latest_entry(payload: dict, station: Station) -> dict:
     return {"id": payload["id"], "name": payload["name"], "state": payload["state"], "lat": station.lat,
             "lon": station.lon, "estimated": payload["estimated"], "method": payload["method"], "now": payload["now"],
             "next24": [h["band"] for h in payload["hours"][:24]], "closure": payload["closure"]}
+
+
+def wind_payload(field: dict, now_hour: datetime, generated_at: datetime, hours: int = 48) -> dict:
+    """wind.json: the wind field every 3 hours from now for the next 48 hours (the map interpolates between)."""
+    index = {t: k for k, t in enumerate(field["times"])}
+    frames = [iso(now_hour + timedelta(hours=h)) for h in range(0, hours, wind.FRAME_STEP_H)]
+    keep = [(t, index[t]) for t in frames if t in index]
+    return {"generated_at": iso(generated_at),
+            "grid": {"lon0": wind.LON0, "lat0": wind.LAT0, "dlon": wind.DLON, "dlat": wind.DLAT, "nx": wind.NX,
+                     "ny": wind.NY},
+            "times": [t for t, _ in keep], "u": [field["u"][k] for _, k in keep], "v": [field["v"][k] for _, k in keep]}
 
 
 def map_payload(payloads: list[dict], stations: dict[str, Station], generated_at: datetime) -> dict:

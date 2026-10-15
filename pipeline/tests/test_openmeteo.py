@@ -132,3 +132,14 @@ def test_weather_forecast_covers_the_day_after_even_after_midnight():
 
     openmeteo.fetch_weather_forecast(make_client(transport=httpx.MockTransport(handler)), STATIONS)
     assert (seen[0]["forecast_days"], seen[0]["past_days"]) == ("4", "1")
+
+
+def test_wind_grid_asks_only_for_the_wind_about_120_m_up():
+    seen = []
+
+    def handler(request):
+        seen.append(dict(request.url.params))
+        return httpx.Response(200, json=WEATHER_TWO)
+
+    openmeteo.fetch_wind_grid(make_client(transport=httpx.MockTransport(handler)), STATIONS)
+    assert seen[0]["hourly"] == "wind_speed_120m,wind_direction_120m" and seen[0]["forecast_days"] == "3"

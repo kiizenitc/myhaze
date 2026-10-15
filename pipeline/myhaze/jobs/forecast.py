@@ -8,6 +8,7 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
+from .. import wind
 from ..baselines import cams_corrected
 from ..config import MYT, REPO_ROOT, load_settings
 from ..convert import aqicn_aqi_to_ugm3, api_to_ugm3
@@ -19,7 +20,7 @@ from ..model.explain import MIN_EFFECT, explain
 from ..model.hourly import build_path, official_api_path
 from ..model.quantile import contributions, from_text, predict
 from ..publish import (accuracy_payload, fires_payload, first_rain, first_trapped, iso, latest_entry, map_payload,
-                       now_block, station_payload, when_phrase, write_site_data)
+                       now_block, station_payload, when_phrase, wind_payload, write_site_data)
 from ..rows import HourlyWeather, Station
 from ..sources import openmeteo
 from ..store import open_store
@@ -43,6 +44,15 @@ def refresh_daily_inputs(client, store, settings, today: date) -> None:
     if last is None or last < today - timedelta(days=1):
         start = max(HISTORY_START, (last or HISTORY_START) - timedelta(days=1))
         BACKFILLS["cams"](client, store, settings, start, today - timedelta(days=1))
+
+
+def refresh_wind_grid(client, store, generated_at: datetime) -> dict | None:
+    """The map's wind field: fetched when the stored one is over 3 hours old (it costs ~460 Open-Meteo locations)."""
+    issued, field = store.wind_grid()
+    if issued is None or generated_at - issued > WEATHER_MAX_AGE:
+        field = wind.hourly_field(openmeteo.fetch_wind_grid(client, wind.grid_points()))
+        store.save_wind_grid(generated_at, field)
+    return field
 
 
 def pm_now(observed: dict[datetime, float], official_now: tuple[datetime, float] | None,
@@ -152,6 +162,11 @@ def main(argv: list[str] | None = None) -> int:
                 refresh_daily_inputs(client, store, settings, today)
             except FetchError as exc:
                 print(f"daily input refresh failed; using stored history ({exc})", file=sys.stderr)
+            try:
+                wind_field = refresh_wind_grid(client, store, generated_at)
+            except FetchError as exc:
+                wind_field = store.wind_grid()[1]
+                print(f"wind grid refresh failed; using the stored one ({exc})", file=sys.stderr)
             if issued is None or generated_at - issued > WEATHER_MAX_AGE or len(weather_latest) < len(stations):
                 try:
                     fresh = openmeteo.fetch_weather_forecast(client, stations + list(RAIN_POINTS))
@@ -193,6 +208,8 @@ def main(argv: list[str] | None = None) -> int:
         extras = {"fires.json": fires_payload(latest_cells, generated_at),
                   "accuracy.json": accuracy_payload(model, version, store.verification_summary()),
                   "map.json": map_payload(payloads, {s.station_id: s for s in stations}, generated_at)}
+        if wind_field:
+            extras["wind.json"] = wind_payload(wind_field, now_hour, generated_at)
         write_site_data(args.out, {"generated_at": iso(generated_at), "stations": entries}, payloads, extras)
         if now_hour.hour % ARCHIVE_EVERY_H == 0:
             store.save_forecast_runs(now_hour, [
