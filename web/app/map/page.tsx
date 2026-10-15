@@ -21,8 +21,9 @@ const FireMap = dynamic(() => import("@/components/FireMap").then((m) => m.FireM
 export default function MapPage() {
   const { data, error } = useData<MapData>("/data/map.json");
   const { data: fires } = useData<Fires>("/data/fires.json");
-  const { data: wind } = useData<WindData>("/data/wind.json");
+  const { data: wind, error: windError } = useData<WindData>("/data/wind.json");
   const [hour, setHour] = useState(0);
+  const [animate, setAnimate] = useState(true);
   const [picked, setPicked] = useState<string | null>(null);
   if (!data) {
     return error ? <p role="alert" className="py-6">We couldn&apos;t load the map data. Check your connection; the page tries again every few minutes.</p>
@@ -37,9 +38,21 @@ export default function MapPage() {
       <h1 className="text-2xl font-semibold">Map</h1>
       <p className="text-[var(--ink-2)]">
         Station dots show the forecast Real Feel. Small dark-red dots are fires seen by satellite on the latest full
-        day. Moving lines show the wind about 100 m up, which carries the smoke.
+        day.
       </p>
-      <FireMap map={data} fires={fires} wind={wind} hour={at} time={time} onPick={setPicked} />
+      <FireMap map={data} fires={fires} wind={wind} hour={at} time={time} animate={animate} onPick={setPicked} />
+      <div className="flex items-center justify-between gap-3 text-sm">
+        <p className="text-[var(--ink-2)]">
+          {wind ? "Lines show the wind that carries the smoke (about 120 m up)."
+            : windError ? "Wind lines are not available right now." : ""}
+        </p>
+        {wind && (
+          <button type="button" onClick={() => setAnimate(!animate)}
+                  className="shrink-0 rounded-full border border-[var(--line)] px-3 py-1.5 font-semibold">
+            {animate ? "Pause wind" : "Play wind"}
+          </button>
+        )}
+      </div>
       <div>
         <label htmlFor="map-hour" className="font-medium">Time</label>{" "}
         <output htmlFor="map-hour">{`${weekdayDate(dateMYT(time))} ${hourOfIso(time)}`}</output>

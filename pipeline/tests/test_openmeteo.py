@@ -143,3 +143,18 @@ def test_wind_grid_asks_only_for_the_wind_about_120_m_up():
 
     openmeteo.fetch_wind_grid(make_client(transport=httpx.MockTransport(handler)), STATIONS)
     assert seen[0]["hourly"] == "wind_speed_120m,wind_direction_120m" and seen[0]["forecast_days"] == "3"
+
+
+def test_wind_grid_gives_up_once_its_time_budget_is_spent():
+    import time
+
+    seen = []
+
+    def handler(request):
+        seen.append(1)
+        return httpx.Response(200, json=WEATHER_TWO)
+
+    with pytest.raises(FetchError):
+        openmeteo.fetch_wind_grid(make_client(transport=httpx.MockTransport(handler)), STATIONS,
+                                  deadline=time.monotonic() - 1)
+    assert seen == []

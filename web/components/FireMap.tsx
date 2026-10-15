@@ -27,17 +27,18 @@ export interface FireMapProps {
   wind?: WindData;
   hour: number;
   time: string;
+  animate: boolean;
   onPick: (id: string) => void;
 }
 
-export function FireMap({ map, fires, wind, hour, time, onPick }: FireMapProps) {
+export function FireMap({ map, fires, wind, hour, time, animate, onPick }: FireMapProps) {
   const box = useRef<HTMLDivElement>(null);
   const instance = useRef<maplibregl.Map | null>(null);
   const flow = useRef<WindFlow | null>(null);
   const loaded = useRef(false);
-  const latest = useRef({ map, fires, wind, hour, time, onPick });
+  const latest = useRef({ map, fires, wind, hour, time, animate, onPick });
   useEffect(() => {
-    latest.current = { map, fires, wind, hour, time, onPick };
+    latest.current = { map, fires, wind, hour, time, animate, onPick };
   });
 
   useEffect(() => {
@@ -76,6 +77,7 @@ export function FireMap({ map, fires, wind, hour, time, onPick }: FireMapProps) 
       canvas.style.cssText = "position:absolute;inset:0;pointer-events:none";
       m.getCanvasContainer().appendChild(canvas);
       flow.current = new WindFlow(m, canvas);
+      flow.current.setAnimate(now.animate);
       if (now.wind) flow.current.setField(now.wind.grid, fieldAt(now.wind, now.time));
       loaded.current = true;
     });
@@ -97,6 +99,16 @@ export function FireMap({ map, fires, wind, hour, time, onPick }: FireMapProps) 
   useEffect(() => {
     if (wind) flow.current?.setField(wind.grid, fieldAt(wind, time));
   }, [wind, time]);
+  useEffect(() => {
+    flow.current?.setAnimate(animate);
+  }, [animate]);
+  useEffect(() => {
+    // No animation while the map is scrolled out of view.
+    if (!box.current || typeof IntersectionObserver !== "function") return;
+    const observer = new IntersectionObserver(([entry]) => flow.current?.setVisible(entry.isIntersecting));
+    observer.observe(box.current);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <div ref={box} role="region" aria-label="Map of stations, fires and wind"

@@ -1,5 +1,5 @@
 import type { Band } from "@/lib/bands";
-import type { Accuracy, Day, Hour, Latest, MapData, StationDetail, StationSummary } from "@/lib/types";
+import type { Accuracy, Day, Hour, Latest, MapData, StationDetail, StationSummary, WindData } from "@/lib/types";
 
 // Synthetic values only: never paste real aqicn readings into the repo.
 export const GENERATED = "2026-10-15T02:10:00Z"; // 10:10am MYT
@@ -100,4 +100,10 @@ export function makeMap(): MapData {
       id: "ZZ01A", name: "Testville", state: "Selangor", lat: 3.0, lon: 101.5, bands: hours.map((h) => h.band),
     }],
   };
+}
+
+export function makeWind(): WindData {
+  const times = [0, 3].map((h) => new Date(START + h * 3600_000).toISOString().replace(".000Z", "Z"));
+  return { generated_at: GENERATED, grid: { lon0: 100, lat0: 2, dlon: 1, dlat: 1, nx: 2, ny: 2 }, times,
+           u: [[1, 1, 1, 1], [2, 2, 2, 2]], v: [[0, 0, 0, 0], [1, 1, 1, 1]] };
 }

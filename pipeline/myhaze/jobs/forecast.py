@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import math
 import sys
+import time
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -33,6 +34,7 @@ WEATHER_MAX_AGE = timedelta(hours=3)
 DEFAULT_SPREAD = (0.7, 1.4)  # p10/p50 and p90/p50 when a baseline without quantiles is shipped
 READING_MAX_AGE = timedelta(hours=2)
 ARCHIVE_EVERY_H = 6
+WIND_BUDGET_S = 180  # the map's wind may use at most 3 minutes of an hourly run
 STATIC_WINDOW_DAYS = 60  # fire history used to recognise gas flares
 
 
@@ -50,9 +52,22 @@ def refresh_wind_grid(client, store, generated_at: datetime) -> dict | None:
     """The map's wind field: fetched when the stored one is over 3 hours old (it costs ~460 Open-Meteo locations)."""
     issued, field = store.wind_grid()
     if issued is None or generated_at - issued > WEATHER_MAX_AGE:
-        field = wind.hourly_field(openmeteo.fetch_wind_grid(client, wind.grid_points()))
+        field = wind.hourly_field(openmeteo.fetch_wind_grid(client, wind.grid_points(),
+                                                            deadline=time.monotonic() + WIND_BUDGET_S))
         store.save_wind_grid(generated_at, field)
     return field
+
+
+def wind_step(client, store, generated_at: datetime) -> dict | None:
+    """The map's wind is decoration next to the station forecasts: no failure of it may stop the forecast."""
+    try:
+        return refresh_wind_grid(client, store, generated_at)
+    except Exception as exc:  # network, database or anything else; the type alone keeps URLs out of public logs
+        print(f"wind grid refresh failed ({type(exc).__name__}); using the stored one", file=sys.stderr)
+        try:
+            return store.wind_grid()[1]
+        except Exception:
+            return None
 
 
 def pm_now(observed: dict[datetime, float], official_now: tuple[datetime, float] | None,
@@ -162,11 +177,6 @@ def main(argv: list[str] | None = None) -> int:
                 refresh_daily_inputs(client, store, settings, today)
             except FetchError as exc:
                 print(f"daily input refresh failed; using stored history ({exc})", file=sys.stderr)
-            try:
-                wind_field = refresh_wind_grid(client, store, generated_at)
-            except FetchError as exc:
-                wind_field = store.wind_grid()[1]
-                print(f"wind grid refresh failed; using the stored one ({exc})", file=sys.stderr)
             if issued is None or generated_at - issued > WEATHER_MAX_AGE or len(weather_latest) < len(stations):
                 try:
                     fresh = openmeteo.fetch_weather_forecast(client, stations + list(RAIN_POINTS))
@@ -174,6 +184,8 @@ def main(argv: list[str] | None = None) -> int:
                     weather_latest = {w.station_id: w for w in fresh}
                 except FetchError as exc:
                     print(f"weather refresh failed; using the stored forecast ({exc})", file=sys.stderr)
+            # After the station weather the forecast needs, so the map's 460-point grid never crowds it out.
+            wind_field = wind_step(client, store, generated_at)
         observed = {sid: {t: aqicn_aqi_to_ugm3(v) for t, v in series.items()}
                     for sid, series in store.hourly_series("aqicn", "pm25_aqi", now_hour - timedelta(hours=30)).items()}
         official_now = store.latest_obs("doe", "api", now_hour - timedelta(hours=6))

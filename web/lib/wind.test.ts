@@ -1,7 +1,7 @@
 import { expect, test } from "vitest";
 
 import type { WindData } from "./types";
-import { advect, fieldAt, projector, sample } from "./wind";
+import { advect, fieldAt, projector, sample, spawnBox } from "./wind";
 
 const WIND: WindData = {
   generated_at: "2026-10-15T02:10:00Z",
@@ -44,4 +44,9 @@ test("the screen projection matches web mercator and inverts", () => {
   const [lon, lat] = p.toLngLat(...p.toScreen(105, -2));
   expect(lon).toBeCloseTo(105, 6);
   expect(lat).toBeCloseTo(-2, 6);
+});
+
+test("particles start only where the view and the wind grid overlap", () => {
+  expect(spawnBox(WIND.grid, [99, -5, 100.5, 5])).toEqual([100, 0, 100.5, 1]);
+  expect(spawnBox(WIND.grid, [90, -5, 95, 5])).toBeNull();
 });

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import math
+import time
 from datetime import date, datetime, timedelta, timezone
 
 import httpx
@@ -99,9 +100,11 @@ def parse_weather(payload, points: list[Station], suffix: str = "") -> list[Hour
 
 
 def _batched_weather(client: httpx.Client, url: str, points: list[Station], params: dict, label: str,
-                     suffix: str = "") -> list[HourlyWeather]:
+                     suffix: str = "", deadline: float | None = None) -> list[HourlyWeather]:
     weather = []
     for start in range(0, len(points), BATCH):
+        if deadline is not None and time.monotonic() > deadline:
+            raise FetchError(f"{label} ran out of time after {start} of {len(points)} points")
         chunk = points[start:start + BATCH]
         payload = get_json(client, url, params=dict(params, latitude=",".join(f"{p.lat:.4f}" for p in chunk),
                                                      longitude=",".join(f"{p.lon:.4f}" for p in chunk)), label=label)
@@ -117,11 +120,14 @@ def fetch_weather_forecast(client: httpx.Client, points: list[Station], days: in
                             "Open-Meteo forecast")
 
 
-def fetch_wind_grid(client: httpx.Client, points: list[Station], days: int = 3) -> list[HourlyWeather]:
-    """Wind about 120 m up at grid points, for the map's flowing-wind layer (3 days from today's UTC midnight)."""
+def fetch_wind_grid(client: httpx.Client, points: list[Station], days: int = 3,
+                    deadline: float | None = None) -> list[HourlyWeather]:
+    """Wind about 120 m up at grid points, for the map's flowing-wind layer (3 days from today's UTC midnight).
+
+    `deadline` (time.monotonic()) stops a slow fetch so it can never hold up the forecast job."""
     return _batched_weather(client, FORECAST_URL, points,
                             {"hourly": "wind_speed_120m,wind_direction_120m", "forecast_days": days, "timezone": "GMT"},
-                            "Open-Meteo wind grid")
+                            "Open-Meteo wind grid", deadline=deadline)
 
 
 def fetch_previous_runs(client: httpx.Client, points: list[Station], start: date, end: date,

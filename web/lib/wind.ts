@@ -27,7 +27,8 @@ export function fieldAt(wind: WindData, time: string): Field | null {
   return { u: mix(wind.u[k], wind.u[k + 1]), v: mix(wind.v[k], wind.v[k + 1]) };
 }
 
-/** Bilinear wind (m/s east, north) at a point; null outside the grid or next to a missing value. */
+/** Bilinear wind (m/s east, north) at a point; null outside the grid or next to a missing value.
+ * Written without temporary arrays: it runs for every particle on every frame. */
 export function sample(grid: WindGrid, field: Field, lon: number, lat: number): [number, number] | null {
   const x = (lon - grid.lon0) / grid.dlon;
   const y = (lat - grid.lat0) / grid.dlat;
@@ -36,14 +37,26 @@ export function sample(grid: WindGrid, field: Field, lon: number, lat: number): 
   const j = Math.min(Math.floor(y), grid.ny - 2);
   const fx = x - i;
   const fy = y - j;
-  const corners = (values: (number | null)[]) =>
-    [values[j * grid.nx + i], values[j * grid.nx + i + 1], values[(j + 1) * grid.nx + i], values[(j + 1) * grid.nx + i + 1]];
-  const cu = corners(field.u);
-  const cv = corners(field.v);
-  if ([...cu, ...cv].some((c) => c === null || c === undefined)) return null;
-  const blend = (c: (number | null)[]) =>
-    ((c[0] as number) * (1 - fx) + (c[1] as number) * fx) * (1 - fy) + ((c[2] as number) * (1 - fx) + (c[3] as number) * fx) * fy;
-  return [blend(cu), blend(cv)];
+  const a = j * grid.nx + i;
+  const b = a + grid.nx;
+  const u00 = field.u[a], u10 = field.u[a + 1], u01 = field.u[b], u11 = field.u[b + 1];
+  const v00 = field.v[a], v10 = field.v[a + 1], v01 = field.v[b], v11 = field.v[b + 1];
+  if (u00 == null || u10 == null || u01 == null || u11 == null || v00 == null || v10 == null || v01 == null || v11 == null) {
+    return null;
+  }
+  return [
+    (u00 * (1 - fx) + u10 * fx) * (1 - fy) + (u01 * (1 - fx) + u11 * fx) * fy,
+    (v00 * (1 - fx) + v10 * fx) * (1 - fy) + (v01 * (1 - fx) + v11 * fx) * fy,
+  ];
+}
+
+/** The part of the view [west, south, east, north] the wind grid covers; null when they do not meet. */
+export function spawnBox(grid: WindGrid, view: [number, number, number, number]): [number, number, number, number] | null {
+  const west = Math.max(view[0], grid.lon0);
+  const south = Math.max(view[1], grid.lat0);
+  const east = Math.min(view[2], grid.lon0 + (grid.nx - 1) * grid.dlon);
+  const north = Math.min(view[3], grid.lat0 + (grid.ny - 1) * grid.dlat);
+  return west < east && south < north ? [west, south, east, north] : null;
 }
 
 /** Where air at (lon, lat) is after `seconds` in a wind of (u, v) m/s. */
