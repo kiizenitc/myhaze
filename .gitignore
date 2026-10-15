@@ -1,0 +1,20 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# private data (aqicn terms forbid redistributing archived data)
+data/raw/
+
+# python
+.venv/
+__pycache__/
+*.pyc
+
+# web
+node_modules/
+.next/
+out/
+.wrangler/
+
+.DS_Store
