@@ -5,13 +5,16 @@ PM2.5 up to and including D; fire cells of the last complete UTC day before the 
 and three days before the issue (D - 3, for the trend); weather *forecasts* for the target day; and
 CAMS's PM2.5 for the target day with this station's recent observed/CAMS ratio. (CAMS history comes from
 Open-Meteo's near-real-time archive, so the backtest is somewhat flattering for it; the owner accepted this.)
+
+Live, the fire day is the last complete UTC day (or the latest one FIRMS has delivered, up to 3 days back).
+Gas flares and refineries in Malaysia show up as a 'fire' almost every day; they are removed everywhere.
 """
 from __future__ import annotations
 
 import math
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 import numpy as np
 
@@ -31,6 +34,9 @@ FEATURES = ("pm_d0", "pm_d1", "pm_d2", "pm_trend", "region_pm_d0", "upwind_fire"
             "cams_target", "cams_ratio")
 MONOTONE = {"upwind_fire": 1, "rain_mm": -1, "rain_fire_regions": -1}
 UPWIND_EFOLD_KM = 500.0
+STATIC_MIN_SHARE = 0.5  # a Malaysian cell seen on at least half of all days is a flare, not a fire
+STATIC_MIN_DAYS = 14
+FIRE_DAY_LOOKBACK = 3
 EARTH_KM = 6371.0
 
 
@@ -60,6 +66,35 @@ def cell_arrays(cells: list[FireCell]) -> CellArrays | None:
     lon = np.array([c.lon_bin + GRID_DEG / 2 for c in cells])
     return CellArrays(np.radians(lat), np.radians(lon), np.array([c.frp_sum for c in cells], dtype=float),
                       np.array([region_of(la, lo) for la, lo in zip(lat, lon)]))
+
+
+def static_sources(cells: list[FireCell], min_share: float = STATIC_MIN_SHARE) -> set[tuple[float, float]]:
+    """Grid cells in Malaysia with a 'fire' on most days: gas flares and refineries (Kerteh, Pengerang, Bintulu).
+
+    Only Malaysian cells: in Sumatra and Kalimantan peat fires also burn for months, and they are the haze."""
+    days = len({c.day for c in cells})
+    if days < STATIC_MIN_DAYS:
+        return set()
+    seen = Counter((c.lat_bin, c.lon_bin) for c in cells)
+    return {key for key, n in seen.items() if n >= min_share * days
+            and region_of(key[0] + GRID_DEG / 2, key[1] + GRID_DEG / 2) in ("peninsular", "my_borneo")}
+
+
+def by_day_without(cells: list[FireCell], static: set[tuple[float, float]]) -> dict[date, list[FireCell]]:
+    grouped: dict[date, list[FireCell]] = defaultdict(list)
+    for c in cells:
+        if (c.lat_bin, c.lon_bin) not in static:
+            grouped[c.day].append(c)
+    return grouped
+
+
+def live_fire_day(cells_by_day: dict[date, list[FireCell]], now: datetime) -> date:
+    """The last complete UTC day, or the latest day FIRMS has delivered within FIRE_DAY_LOOKBACK days before it."""
+    complete = now.astimezone(timezone.utc).date() - timedelta(days=1)
+    for k in range(FIRE_DAY_LOOKBACK + 1):
+        if cells_by_day.get(complete - timedelta(days=k)):
+            return complete - timedelta(days=k)
+    return complete
 
 
 def region_totals(arrays: CellArrays | None) -> dict[str, float]:
@@ -180,7 +215,16 @@ def build_live_rows(stations: list[Station], now: datetime, pm_now: dict[str, fl
                     weather_latest: dict[str, HourlyWeather], leads: tuple[int, ...] = (1, 2),
                     cams_daily: dict[tuple[str, date], float] | None = None) -> list[FeatureRow]:
     issue = now.astimezone(MYT).date()
+    fire_day = live_fire_day(cells_by_day, now)
+    fires = {issue - timedelta(days=1): cells_by_day.get(fire_day, []),
+             issue - timedelta(days=3): cells_by_day.get(fire_day - timedelta(days=2), [])}
+    return build_rows(stations, live_pm(daily_pm, pm_now, issue), fires,
+                      live_weather_days(weather_latest, issue, leads), [issue], leads, cams_daily)
+
+
+def live_pm(daily_pm: dict[tuple[str, date], float], pm_now: dict[str, float],
+            issue: date) -> dict[tuple[str, date], float]:
+    """Daily PM2.5 as the live forecast sees it: complete days from the archive, today from the live reading."""
     pm = {key: value for key, value in daily_pm.items() if key[1] < issue}
     pm.update({(station_id, issue): value for station_id, value in pm_now.items()})
-    return build_rows(stations, pm, cells_by_day, live_weather_days(weather_latest, issue, leads), [issue], leads,
-                      cams_daily)
+    return pm

@@ -109,7 +109,8 @@ def _batched_weather(client: httpx.Client, url: str, points: list[Station], para
     return weather
 
 
-def fetch_weather_forecast(client: httpx.Client, points: list[Station], days: int = 3) -> list[HourlyWeather]:
+def fetch_weather_forecast(client: httpx.Client, points: list[Station], days: int = 4) -> list[HourlyWeather]:
+    # 4 days from today's UTC midnight: late in the MYT evening the 48 h path still reaches the day after tomorrow.
     hourly = ",".join(WEATHER_VARS + ("boundary_layer_height",))
     return _batched_weather(client, FORECAST_URL, points,
                             {"hourly": hourly, "forecast_days": days, "past_days": 1, "timezone": "GMT"},
@@ -135,7 +136,7 @@ def fetch_cams_hourly_history(client: httpx.Client, stations: list[Station], sta
             "latitude": ",".join(f"{s.lat:.4f}" for s in chunk), "longitude": ",".join(f"{s.lon:.4f}" for s in chunk),
             "hourly": "pm2_5", "start_date": (start - timedelta(days=1)).isoformat(), "end_date": end.isoformat(),
             "timezone": "GMT"}, label="Open-Meteo air-quality history")
-        for station, forecast in zip(chunk, parse_cams(payload, chunk, datetime.min.replace(tzinfo=timezone.utc))):
-            series[station.station_id] = {forecast.first_valid + timedelta(hours=i): v
-                                          for i, v in enumerate(forecast.pm25) if v is not None}
+        for forecast in parse_cams(payload, chunk, datetime.min.replace(tzinfo=timezone.utc)):
+            series[forecast.station_id] = {forecast.first_valid + timedelta(hours=i): v
+                                           for i, v in enumerate(forecast.pm25) if v is not None}
     return series

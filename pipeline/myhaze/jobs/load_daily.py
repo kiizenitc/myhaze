@@ -10,7 +10,7 @@ from ..config import MYT, REPO_ROOT, load_settings
 from ..convert import aqicn_aqi_to_ugm3
 from ..daily import daily_means
 from ..sources.aqicn_csv import parse_daily_csv
-from ..store import Store
+from ..store import open_store
 
 HISTORY_START = date(2026, 7, 1)
 CSV_DIR = REPO_ROOT / "data" / "raw" / "aqicn_daily"
@@ -52,7 +52,9 @@ def main(argv: list[str] | None = None) -> int:
     if not settings.db_url:
         print("SUPABASE_DB_URL is not set", file=sys.stderr)
         return 2
-    store = Store.connect(settings.db_url)
+    store = open_store(settings.db_url)
+    if store is None:
+        return 1
     try:
         print(load_csv_dir(store, args.dir))
         print(refresh_archive_daily(store, datetime.now(MYT).date()))

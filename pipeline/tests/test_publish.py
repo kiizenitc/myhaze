@@ -4,7 +4,7 @@ import pytest
 
 from myhaze.config import MYT
 from myhaze.model.hourly import build_path, official_api_path
-from myhaze.publish import (best_window, day_plan, latest_entry, now_block, station_payload, validate_latest,
+from myhaze.publish import (best_window, day_plan, first_trapped, latest_entry, now_block, station_payload, validate_latest,
                             validate_station, when_phrase, write_site_data)
 from myhaze.rows import Station
 
@@ -75,3 +75,22 @@ def test_invalid_data_is_never_written(tmp_path):
     with pytest.raises(ValueError):
         write_site_data(tmp_path / "out", {"generated_at": "x", "stations": [latest_entry(good, KLANG)]}, [good, broken], {})
     assert not (tmp_path / "out").exists()
+
+
+def test_nan_never_reaches_the_published_json(tmp_path):
+    good = sample_station()
+    good["hours"][0]["rain_mm"] = float("nan")
+    with pytest.raises(ValueError):
+        write_site_data(tmp_path / "out", {"generated_at": "x", "stations": [latest_entry(good, KLANG)]}, [good], {})
+    assert not (tmp_path / "out" / "latest.json").exists()
+
+
+def test_trapped_smoke_is_mentioned_only_when_there_is_haze_to_trap():
+    from myhaze.model.hourly import HourlyPath
+
+    morning = datetime(2026, 10, 15, 22, tzinfo=timezone.utc)  # 06:00 MYT
+    times = [morning - timedelta(hours=1), morning]
+    clean = HourlyPath(times, [3.0, 3.0], [5.0, 5.0], [8.0, 8.0], [True, True])
+    hazy = HourlyPath(times, [40.0, 40.0], [60.0, 60.0], [90.0, 90.0], [True, True])
+    assert first_trapped(clean) is None
+    assert first_trapped(hazy) == morning

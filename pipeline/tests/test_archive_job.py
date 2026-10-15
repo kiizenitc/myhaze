@@ -242,7 +242,9 @@ def test_main_reports_a_connection_failure_without_echoing_it(monkeypatch, capsy
     def refuse(cls, db_url):
         raise RuntimeError(f"invalid connection option in {db_url}")
 
-    monkeypatch.setattr(archive.Store, "connect", classmethod(refuse))
+    from myhaze.store import Store
+
+    monkeypatch.setattr(Store, "connect", classmethod(refuse))
 
     assert archive.main([]) == 1
     output = capsys.readouterr()

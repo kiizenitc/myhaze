@@ -1,6 +1,8 @@
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
+import pytest
+
 from myhaze.jobs.verify import score_runs
 
 
@@ -14,3 +16,33 @@ def test_score_runs_compares_forecast_bands_with_what_happened():
             totals[horizon][i] += v
     assert totals["1-24h"] == [24, 24, 0, 0]
     assert totals["25-48h"] == [23, 5, 18, 0]
+
+
+def test_only_a_completed_day_is_scored():
+    from datetime import date
+
+    first = datetime(2026, 10, 15, 0, tzinfo=timezone.utc)
+    runs = [(first, "S", first, [20.0] * 48)]
+    observed = {"S": {first + timedelta(hours=h): 20.0 for h in range(48)}}
+    rows = score_runs(runs, observed, only_day=date(2026, 10, 15))
+    assert {row[0] for row in rows} == {date(2026, 10, 15)}
+
+
+@pytest.mark.parametrize("job", ["verify", "train"])
+def test_a_failed_database_connect_never_prints_the_password(job, monkeypatch, capsys):
+    import importlib
+
+    from myhaze.config import Settings
+    from myhaze.store import Store
+
+    module = importlib.import_module(f"myhaze.jobs.{job}")
+    url = "postgresql://user:HUNTER2SECRET@db.example:5432/postgres"
+    monkeypatch.setattr(module, "load_settings", lambda: Settings(aqicn_token="t", db_url=url))
+
+    def refuse(cls, db_url):
+        raise RuntimeError(f"connection to {db_url} failed")
+
+    monkeypatch.setattr(Store, "connect", classmethod(refuse))
+    assert module.main([]) == 1
+    captured = capsys.readouterr()
+    assert "HUNTER2SECRET" not in captured.out + captured.err

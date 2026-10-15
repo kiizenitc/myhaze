@@ -1,6 +1,7 @@
 """Supabase Postgres access for the archive (direct connection through the session pooler)."""
 from __future__ import annotations
 
+import sys
 from datetime import date, datetime
 
 import psycopg
@@ -19,6 +20,15 @@ _OBS_UPSERT = (
     + ", ".join(f"{c} = excluded.{c}" for c in OBS_COLUMNS[3:])
     + ", fetched_at = now()"
 )
+
+
+def open_store(db_url: str) -> "Store | None":
+    """Connect, or say so without quoting the error: it can contain the URL and password, and Actions logs are public."""
+    try:
+        return Store.connect(db_url)
+    except Exception as exc:
+        print(f"could not connect to the database ({type(exc).__name__})", file=sys.stderr)
+        return None
 
 
 class Store:

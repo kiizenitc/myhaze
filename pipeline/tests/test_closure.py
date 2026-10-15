@@ -35,3 +35,10 @@ def test_closure_indicator_beyond_the_horizon_has_no_probability():
     times = [friday_evening + timedelta(hours=h) for h in range(48)]  # ends Sunday 20:00 MYT
     result = closure_indicator("Selangor", friday_evening, times, ([1.0] * 48,) * 3, {})
     assert result == {"school_day": "2026-10-19", "probability": None, "rule": None}
+
+
+def test_closure_needs_most_of_the_school_day_inside_the_forecast():
+    saturday_morning = datetime(2026, 10, 17, 0, tzinfo=timezone.utc)  # Sat 08:00 MYT: Monday is next in Selangor
+    times = [saturday_morning + timedelta(hours=h) for h in range(48)]  # ends Mon 07:00 MYT
+    result = closure_indicator("Selangor", saturday_morning, times, ([150.0] * 48, [200.0] * 48, [250.0] * 48), {})
+    assert result == {"school_day": "2026-10-19", "probability": None, "rule": None}

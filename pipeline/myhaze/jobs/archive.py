@@ -14,7 +14,7 @@ from datetime import datetime, timedelta, timezone
 from ..config import load_settings
 from ..http import FetchError, make_client
 from ..sources import aqicn, doe, firms, openmeteo
-from ..store import Store
+from ..store import open_store
 
 DOE_PAUSE_S = 0.5
 DOE_UP_TO_DATE_SHARE = 0.9
@@ -193,11 +193,8 @@ def main(argv: list[str] | None = None) -> int:
     if not settings.db_url:
         print("SUPABASE_DB_URL is not set", file=sys.stderr)
         return 2
-    try:
-        store = Store.connect(settings.db_url)
-    except Exception as exc:
-        # Connection errors can quote the URL, password included, and Actions logs are public.
-        print(f"could not connect to the database ({type(exc).__name__})", file=sys.stderr)
+    store = open_store(settings.db_url)
+    if store is None:
         return 1
     try:
         with make_client() as client:

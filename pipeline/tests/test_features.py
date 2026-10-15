@@ -2,7 +2,8 @@ from datetime import date, datetime, timedelta, timezone
 
 import pytest
 
-from myhaze.features import FEATURES, build_live_rows, build_rows, cell_arrays, upwind_by_region
+from myhaze.features import (FEATURES, build_live_rows, build_rows, cell_arrays, live_pm, static_sources,
+                             upwind_by_region)
 from myhaze.rows import FireCell, HourlyWeather, Station
 from myhaze.weather import RAIN_POINTS, WeatherDay
 
@@ -74,3 +75,37 @@ def test_cams_features_use_the_target_forecast_and_the_recent_error_ratio():
     assert klang_1.x["cams_target"] == pytest.approx(math.log1p(40.0))
     assert klang_1.x["cams_ratio"] == pytest.approx(observed / (25.0 * 5))
     assert build_rows([KLANG], daily_pm, cells, weather, [ISSUE])[0].x["cams_target"] is None
+
+
+def test_static_sources_are_malaysian_cells_burning_on_most_days():
+    days = [ISSUE - timedelta(days=k) for k in range(20)]
+    kerteh = [FireCell(d, 4.5, 103.25, 20.0, 1) for d in days]  # the gas flare at the Kerteh refinery
+    riau = [FireCell(d, 1.0, 101.5, 300.0, 9) for d in days]  # a Sumatran peat fire: just as steady, but real smoke
+    farm = [FireCell(days[0], 3.0, 101.5, 5.0, 1)]  # a one-off burn in Selangor
+    assert static_sources(kerteh + riau + farm) == {(4.5, 103.25)}
+    assert static_sources(kerteh[:5]) == set()  # too few days to tell a flare from a fire
+
+
+def live_weather(start):
+    times = [start + timedelta(hours=h) for h in range(96)]
+    return {p.station_id: HourlyWeather(p.station_id, times, [0.0] * 96, [400.0] * 96, [5.0] * 96, [12.0] * 96,
+                                        [225.0] * 96, [75.0] * 96) for p in (KLANG, *RAIN_POINTS)}
+
+
+def test_live_rows_use_the_last_complete_utc_fire_day_and_fall_back_when_firms_is_late():
+    import math
+
+    now = datetime(2026, 10, 10, 17, tzinfo=timezone.utc)  # 01:00 MYT on 11 Oct: 10 Oct (UTC) is still burning
+    hw = live_weather(datetime(2026, 10, 10, 16, tzinfo=timezone.utc))
+    day = lambda d: date(2026, 10, d)
+    cells = {day(9): [FireCell(day(9), 1.5, 101.25, 100.0, 3)], day(10): [FireCell(day(10), 1.5, 101.25, 999.0, 3)]}
+    rows = build_live_rows([KLANG], now, {"CA21B": 60.0}, {}, cells, hw)
+    assert rows[0].x["fire_sumatra"] == pytest.approx(math.log1p(100.0))
+    late = {day(7): [FireCell(day(7), 1.5, 101.25, 50.0, 3)], day(10): cells[day(10)]}  # nothing yet for 8-9 Oct
+    rows = build_live_rows([KLANG], now, {"CA21B": 60.0}, {}, late, hw)
+    assert rows[0].x["fire_sumatra"] == pytest.approx(math.log1p(50.0))
+
+
+def test_live_daily_pm_takes_todays_value_from_the_live_reading():
+    daily = {("S", ISSUE - timedelta(days=1)): 40.0, ("S", ISSUE): 12.0, ("S", ISSUE + timedelta(days=1)): 99.0}
+    assert live_pm(daily, {"S": 70.0}, ISSUE) == {("S", ISSUE - timedelta(days=1)): 40.0, ("S", ISSUE): 70.0}

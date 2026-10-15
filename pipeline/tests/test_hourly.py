@@ -49,3 +49,19 @@ def test_official_api_is_a_24_hour_mean_of_observed_and_forecast():
     assert mid[0] == pytest.approx(ugm3_to_api((23 * 100.0 + 50.0) / 24), abs=0.1)
     assert mid[23] == pytest.approx(ugm3_to_api(50.0), abs=0.1)
     assert len(low) == len(high) == 48
+
+
+def test_a_zero_or_tiny_reading_cannot_wipe_out_the_forecast():
+    path = build_path(NOW, FLAT, None, anchor=0.0)
+    assert path.p50[0] == pytest.approx(12.5)  # the live reading may pull the path down at most 4x
+    assert path.p50[12] > 40 and path.p50[47] == pytest.approx(50.0, rel=0.01)
+
+
+def test_official_path_starts_at_doe_and_hands_over_within_a_day():
+    path = build_path(NOW, FLAT, None, anchor=None)
+    observed = {NOW - timedelta(hours=k): 100.0 for k in range(1, 24)}
+    plain = official_api_path(path, observed, fallback=None)
+    anchored = official_api_path(path, observed, fallback=None, official_now=150.0)
+    assert anchored[1][0] == pytest.approx(150.0)
+    assert anchored[1][12] == pytest.approx(plain[1][12] + (150.0 - plain[1][0]) * 0.5, abs=0.2)
+    assert anchored[1][24] == pytest.approx(plain[1][24])

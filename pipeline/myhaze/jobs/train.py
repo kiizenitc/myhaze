@@ -3,15 +3,14 @@ from __future__ import annotations
 
 import json
 import sys
-from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 
 from ..config import MYT, REPO_ROOT, load_settings
-from ..features import build_rows
+from ..features import build_rows, by_day_without, static_sources
 from ..http import make_client
 from ..model.backtest import render_markdown, run_backtest
 from ..model.quantile import fit, to_text
-from ..store import Store
+from ..store import open_store
 from .backfill import BACKFILLS, HISTORY_START
 from .load_daily import refresh_archive_daily
 
@@ -28,9 +27,8 @@ def refresh_inputs(client, store, settings, today: date) -> None:
 
 def collect_rows(store, today: date):
     start = HISTORY_START
-    cells_by_day = defaultdict(list)
-    for cell in store.fire_cells(start - timedelta(days=4), today):
-        cells_by_day[cell.day].append(cell)
+    cells = store.fire_cells(start - timedelta(days=4), today)
+    cells_by_day = by_day_without(cells, static_sources(cells))
     daily_pm = store.daily_pm25(start - timedelta(days=3), today)
     weather = store.weather_daily(start, today + timedelta(days=2))
     cams_daily = store.cams_daily(start - timedelta(days=7), today)
@@ -45,7 +43,9 @@ def main(argv: list[str] | None = None) -> int:
         print("SUPABASE_DB_URL is not set", file=sys.stderr)
         return 2
     today = datetime.now(MYT).date()
-    store = Store.connect(settings.db_url)
+    store = open_store(settings.db_url)
+    if store is None:
+        return 1
     try:
         with make_client() as client:
             refresh_inputs(client, store, settings, today)

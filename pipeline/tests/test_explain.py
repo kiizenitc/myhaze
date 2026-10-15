@@ -31,6 +31,35 @@ def test_compass():
 
 
 def test_explain_describes_the_regional_smoke_outlook():
-    row = FeatureRow("S", D, 1, D + timedelta(days=1), {}, None)
-    assert explain({"cams_target": 0.4}, row) == ["Regional smoke forecasts expect more haze to arrive."]
-    assert explain({"cams_target": -0.3}, row) == ["Regional smoke forecasts expect the haze to ease."]
+    rising = FeatureRow("S", D, 1, D + timedelta(days=1), {"pm_d0": 30.0, "cams_target": math.log1p(60.0)}, None)
+    easing = FeatureRow("S", D, 1, D + timedelta(days=1), {"pm_d0": 80.0, "cams_target": math.log1p(40.0)}, None)
+    assert explain({"cams_target": 0.4}, rising) == ["Regional smoke forecasts expect more haze to arrive."]
+    assert explain({"cams_target": -0.3}, easing) == ["Regional smoke forecasts expect the haze to ease."]
+
+
+def test_the_outlook_is_not_claimed_when_the_smoke_forecast_says_otherwise():
+    easing = FeatureRow("S", D, 1, D + timedelta(days=1), {"pm_d0": 80.0, "cams_target": math.log1p(40.0)}, None)
+    assert explain({"cams_target": 0.4}, easing) == []
+    assert explain({"cams_target": 0.4}, FeatureRow("S", D, 1, D, {}, None)) == []
+
+
+def test_haze_building_is_said_only_when_readings_actually_rose():
+    rose = FeatureRow("S", D, 1, D + timedelta(days=1), {"pm_d0": 80.0, "pm_trend": 0.3}, None)
+    fell = FeatureRow("S", D, 1, D + timedelta(days=1), {"pm_d0": 80.0, "pm_trend": -0.2}, None)
+    assert explain({"pm_d0": 0.3}, rose) == ["Haze has been building over the last few days."]
+    assert explain({"pm_d0": 0.3}, fell) == []
+    assert explain({"pm_d0": -0.3}, fell) == ["The air has been improving over the last few days."]
+
+
+def test_reasons_pointing_the_other_way_from_the_forecast_are_left_out():
+    row = FeatureRow("S", D, 1, D + timedelta(days=1), {}, None, {"sumatra": 50.0, "kalimantan": 0.0})
+    contrib = {"upwind_fire": 0.30, "rain_mm": -0.12}
+    assert explain(contrib, row, direction=-1) == ["Rain on the way should help clear the air."]
+    assert explain(contrib, row, direction=1) == ["Fires upwind, mainly in Sumatra, are adding smoke."]
+    assert len(explain(contrib, row, direction=0)) == 2
+
+
+def test_a_fire_region_is_named_only_when_it_dominates_the_upwind_smoke():
+    spread = FeatureRow("S", D, 1, D + timedelta(days=1), {}, None, {"sumatra": 40.0, "kalimantan": 35.0, "other": 25.0})
+    assert explain({"upwind_fire": 0.3}, spread) == ["Fires upwind are adding smoke."]
+    assert explain({"fire_kalimantan": 0.25, "upwind_fire": 0.02}, spread) == ["Many fires are burning in Kalimantan."]

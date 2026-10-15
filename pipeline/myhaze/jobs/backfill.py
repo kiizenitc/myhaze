@@ -9,7 +9,7 @@ from ..config import MYT, load_settings
 from ..daily import daily_means
 from ..http import make_client
 from ..sources import firms, openmeteo
-from ..store import Store
+from ..store import open_store
 from ..weather import RAIN_POINTS, daily_weather
 
 HISTORY_START = date(2026, 7, 1)
@@ -59,7 +59,9 @@ def main(argv: list[str] | None = None) -> int:
         print("SUPABASE_DB_URL is not set", file=sys.stderr)
         return 2
     end = args.end or datetime.now(MYT).date()
-    store = Store.connect(settings.db_url)
+    store = open_store(settings.db_url)
+    if store is None:
+        return 1
     try:
         with make_client() as client:
             print(BACKFILLS[args.what](client, store, settings, args.start, end))

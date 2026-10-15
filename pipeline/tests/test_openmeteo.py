@@ -109,3 +109,26 @@ def test_fetch_cams_hourly_history_returns_series_per_station():
     got = openmeteo.fetch_cams_hourly_history(make_client(transport=httpx.MockTransport(handler)), STATIONS,
                                               date(2026, 10, 15), date(2026, 10, 15))
     assert got["CA01R"] == {SLOT: 20.1, SLOT.replace(hour=2): 22.5}
+
+
+def test_cams_history_never_assigns_one_stations_data_to_another():
+    payload = [fixtures.CAMS_TWO_STATIONS[0], {"hourly": None}, fixtures.CAMS_TWO_STATIONS[1]]
+    three = STATIONS + [Station("CA99Z", "Third", "Somewhere", 1.0, 103.0)]
+
+    def handler(request):
+        return httpx.Response(200, json=payload)
+
+    got = openmeteo.fetch_cams_hourly_history(make_client(transport=httpx.MockTransport(handler)), three,
+                                              date(2026, 10, 15), date(2026, 10, 15))
+    assert set(got) == {"CA01R", "CA99Z"} and got["CA99Z"][SLOT] == 61.0
+
+
+def test_weather_forecast_covers_the_day_after_even_after_midnight():
+    seen = []
+
+    def handler(request):
+        seen.append(dict(request.url.params))
+        return httpx.Response(200, json=WEATHER_TWO)
+
+    openmeteo.fetch_weather_forecast(make_client(transport=httpx.MockTransport(handler)), STATIONS)
+    assert (seen[0]["forecast_days"], seen[0]["past_days"]) == ("4", "1")

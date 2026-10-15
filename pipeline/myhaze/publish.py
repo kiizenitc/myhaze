@@ -118,8 +118,9 @@ def first_rain(weather: HourlyWeather | None, times: list[datetime], mm: float =
 
 
 def first_trapped(path: HourlyPath) -> datetime | None:
-    return next((t for t, trapped in zip(path.times[1:], path.trapped[1:])
-                 if trapped and 5 <= t.astimezone(MYT).hour <= 10), None)
+    """First early-morning hour with a shallow mixing layer and haze to trap (API above 50)."""
+    return next((t for t, trapped, pm in zip(path.times[1:], path.trapped[1:], path.p50[1:])
+                 if trapped and pm is not None and ugm3_to_api(pm) > 50 and 5 <= t.astimezone(MYT).hour <= 10), None)
 
 
 def now_block(reading: tuple[datetime, float] | None, official: tuple[datetime, float] | None) -> dict:
@@ -215,14 +216,16 @@ def write_site_data(out_dir: Path, latest: dict, stations: list[dict], extras: d
     validate_latest(latest)
     for payload in stations:
         validate_station(payload)
+
+    def dump(obj) -> str:
+        return json.dumps(obj, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
+
+    # Serialise everything before writing anything: a NaN anywhere publishes nothing.
+    files = {"latest.json": dump(latest)}
+    files.update({f"stations/{payload['id']}.json": dump(payload) for payload in stations})
+    files.update({name: dump(obj) for name, obj in extras.items()})
     out_dir = Path(out_dir)
     (out_dir / "stations").mkdir(parents=True, exist_ok=True)
 
-    def dump(obj) -> str:
-        return json.dumps(obj, separators=(",", ":"), ensure_ascii=False)
-
-    (out_dir / "latest.json").write_text(dump(latest), encoding="utf-8")
-    for payload in stations:
-        (out_dir / "stations" / f"{payload['id']}.json").write_text(dump(payload), encoding="utf-8")
-    for name, obj in extras.items():
-        (out_dir / name).write_text(dump(obj), encoding="utf-8")
+    for name, text in files.items():
+        (out_dir / name).write_text(text, encoding="utf-8")

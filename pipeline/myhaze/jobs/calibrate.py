@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from ..calibration import calibrate
 from ..config import load_settings
 from ..convert import CALIBRATION_FILE
-from ..store import Store
+from ..store import open_store
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -16,7 +16,9 @@ def main(argv: list[str] | None = None) -> int:
     if not settings.db_url:
         print("SUPABASE_DB_URL is not set", file=sys.stderr)
         return 2
-    store = Store.connect(settings.db_url)
+    store = open_store(settings.db_url)
+    if store is None:
+        return 1
     try:
         since = datetime.now(timezone.utc) - timedelta(days=14)
         aqicn = store.hourly_series("aqicn", "pm25_aqi", since)

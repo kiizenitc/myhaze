@@ -21,6 +21,9 @@ FACTOR_RANGE = (0.6, 1.8)
 TRAPPED_FACTOR = 1.3
 WASHOUT = 0.85
 WASHOUT_MM = 1.0
+ANCHOR_FLOOR = 1.0  # µg/m³: a zero or glitched reading must not wipe out the path
+ANCHOR_PULL = (0.25, 4.0)  # the live reading moves the path at most 4x either way
+OFFICIAL_HANDOVER_H = 24
 
 
 @dataclass
@@ -82,7 +85,8 @@ def build_path(now_hour: datetime, levels: dict[date, tuple[float, float, float]
             first = model
         if anchor is not None and first > 0:
             decay = math.exp(-h / ANCHOR_EFOLD_H)
-            value, spread = model * (anchor / first) ** decay, 1.0 - decay
+            pull = min(max(max(anchor, ANCHOR_FLOOR) / first, ANCHOR_PULL[0]), ANCHOR_PULL[1])
+            value, spread = model * pull ** decay, 1.0 - decay
         else:
             value, spread = model, 1.0
         path.p50.append(round(value, 2))
@@ -92,9 +96,11 @@ def build_path(now_hour: datetime, levels: dict[date, tuple[float, float, float]
     return path
 
 
-def official_api_path(path: HourlyPath, observed: dict[datetime, float],
-                      fallback: float | None) -> tuple[list, list, list]:
-    """DOE's API is a 24-hour running mean: combine observed past hours with forecast future hours."""
+def official_api_path(path: HourlyPath, observed: dict[datetime, float], fallback: float | None,
+                      official_now: float | None = None) -> tuple[list, list, list]:
+    """DOE's API is a 24-hour running mean: combine observed past hours with forecast future hours.
+
+    DOE's own figure for this hour wins over our reconstruction; the gap fades out over a day."""
     start = path.times[0]
     result = []
     for series in (path.p10, path.p50, path.p90):
@@ -109,6 +115,14 @@ def official_api_path(path: HourlyPath, observed: dict[datetime, float],
                     v = series[int((u - start).total_seconds() // 3600)]
                 if v is not None:
                     window.append(v)
-            values.append(round(ugm3_to_api(sum(window) / len(window)), 1) if window else None)
+            values.append(ugm3_to_api(sum(window) / len(window)) if window else None)
         result.append(values)
+    offset = 0.0
+    if official_now is not None and result[1][0] is not None:
+        offset = official_now - result[1][0]
+    for values in result:
+        for h, v in enumerate(values):
+            if v is not None:
+                fade = max(0.0, 1.0 - h / OFFICIAL_HANDOVER_H)
+                values[h] = round(max(v + offset * fade, 0.0), 1)
     return tuple(result)

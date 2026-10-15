@@ -16,6 +16,7 @@ STREAK_ABOVE = 150.0
 STREAK_DAYS = 3
 DECISION_HOUR = 7  # from 07:00 MYT the next school day is tomorrow at the earliest
 Z80 = 1.2816
+MIN_DAY_HOURS = 18  # too little of the school day inside the 48 h forecast: say nothing
 
 
 def is_school_day(day: date, state: str) -> bool:
@@ -44,7 +45,7 @@ def p_above(p50: float, low: float | None, high: float | None, threshold: float)
 def _day_max_probability(times, official, day: date, threshold: float) -> float | None:
     low, mid, high = official
     hours = [i for i, t in enumerate(times) if t.astimezone(MYT).date() == day and mid[i] is not None]
-    if not hours:
+    if len(hours) < MIN_DAY_HOURS:
         return None
     i = max(hours, key=lambda j: mid[j])
     return p_above(mid[i], low[i], high[i], threshold)

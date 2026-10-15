@@ -61,3 +61,12 @@ class FakeStore:
     def fire_cells(self, start, end):
         return sorted((c for c in self.fire_cells_store.values() if start <= c.day <= end),
                       key=lambda c: (c.day, c.lat_bin, c.lon_bin))
+
+    def daily_pm25(self, start, end):
+        return {}
+
+    def weather_daily(self, start, end):
+        return {}
+
+    def cams_daily(self, start, end):
+        return {}
