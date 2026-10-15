@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { BandPill } from "@/components/BandPill";
 import { StaleBanner } from "@/components/StaleBanner";
@@ -11,6 +11,8 @@ import { BANDS } from "@/lib/bands";
 import { useData } from "@/lib/data";
 import { dateMYT, hourOfIso, weekdayDate } from "@/lib/format";
 import type { Fires, MapData, WindData } from "@/lib/types";
+
+const STEP_MS = 500; // one forecast hour per half second: the 48 hours play in about 24 seconds
 
 // MapLibre is large and needs the browser: it loads on the client after the page shows, never in the first load.
 const FireMap = dynamic(() => import("@/components/FireMap").then((m) => m.FireMap), {
@@ -26,6 +28,16 @@ export function MapView() {
   const { data: wind, error: windError } = useData<WindData>("/data/wind.json");
   const [hour, setHour] = useState(0);
   const [animate, setAnimate] = useState(true);
+  const [playing, setPlaying] = useState(false);
+  const last = data ? data.times.length - 1 : 0;
+  useEffect(() => {
+    if (!playing) return;
+    const timer = setInterval(() => setHour((h) => Math.min(h + 1, last)), STEP_MS);
+    return () => clearInterval(timer);
+  }, [playing, last]);
+  useEffect(() => {
+    if (playing && hour >= last) setPlaying(false); // the time-lapse stops on the last forecast hour
+  }, [playing, hour, last]);
   if (!data) {
     return error ? <p role="alert" className="py-6">We couldn&apos;t load the map data. Check your connection; the page tries again every few minutes.</p>
       : <p>Loading…</p>;
@@ -56,10 +68,29 @@ export function MapView() {
         )}
       </div>
       <div>
-        <label htmlFor="map-hour" className="font-medium">Time</label>{" "}
-        <output htmlFor="map-hour">{`${weekdayDate(dateMYT(time))} ${hourOfIso(time)}`}</output>
-        <input id="map-hour" type="range" min={0} max={data.times.length - 1} step={1} value={at}
-               onChange={(e) => setHour(Number(e.target.value))} className="mt-1 w-full accent-[var(--accent)]" />
+        <div className="flex items-center justify-between gap-3">
+          <p>
+            <label htmlFor="map-hour" className="font-medium">Time</label>{" "}
+            <output htmlFor="map-hour">{`${weekdayDate(dateMYT(time))} ${hourOfIso(time)}`}</output>
+          </p>
+          <button type="button" aria-label={playing ? "Stop the time-lapse" : "Play the 48-hour forecast"}
+                  onClick={() => {
+                    if (playing) {
+                      setPlaying(false);
+                    } else {
+                      if (at >= last) setHour(0); // at the end: play again from now
+                      setPlaying(true);
+                    }
+                  }}
+                  className="shrink-0 rounded-full bg-[var(--accent)] px-4 py-1.5 font-semibold text-[var(--page)]">
+            {playing ? "■ Stop" : "▶ Play"}
+          </button>
+        </div>
+        <input id="map-hour" type="range" min={0} max={last} step={1} value={at}
+               onChange={(e) => {
+                 setPlaying(false); // dragging the slider takes over from the time-lapse
+                 setHour(Number(e.target.value));
+               }} className="mt-1 w-full accent-[var(--accent)]" />
         <div className="flex justify-between text-xs text-[var(--ink-2)]"><span>Now</span><span>+24h</span><span>+48h</span></div>
       </div>
       <div className="flex flex-wrap gap-2" aria-label="Legend">{BANDS.map((b) => <BandPill key={b} band={b} />)}</div>

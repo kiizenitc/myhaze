@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, test, vi } from "vitest";
 
@@ -54,4 +54,36 @@ test("tapping a station's dot opens that station's page", async () => {
   render(<MapView />);
   await userEvent.click(await screen.findByRole("button", { name: "tap station" }));
   expect(router.push).toHaveBeenCalledWith("/station/?id=ZZ01A");
+});
+
+test("Play runs the 48 hours as a time-lapse and stops at the end; Stop or the slider halts it", async () => {
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => new Response(JSON.stringify(
+    String(url).includes("map.json") ? makeMap() : { generated_at: GENERATED, cells: [] }),
+    { status: String(url).includes("wind.json") ? 404 : 200 })));
+  render(<MapView />);
+  const slider = await screen.findByRole("slider", { name: "Time" });
+  vi.useFakeTimers();
+  try {
+    fireEvent.click(screen.getByRole("button", { name: "Play the 48-hour forecast" }));
+    act(() => vi.advanceTimersByTime(1500)); // three steps of half a second
+    expect(screen.getByTestId("map")).toHaveTextContent("hour 3");
+    expect(screen.getByText("Thu 15 Oct 1pm")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Stop the time-lapse" }));
+    act(() => vi.advanceTimersByTime(2000));
+    expect(screen.getByTestId("map")).toHaveTextContent("hour 3");
+
+    fireEvent.click(screen.getByRole("button", { name: "Play the 48-hour forecast" }));
+    act(() => vi.advanceTimersByTime(60_000)); // runs to the last hour and stops there
+    expect(screen.getByTestId("map")).toHaveTextContent("hour 47");
+    expect(screen.getByRole("button", { name: "Play the 48-hour forecast" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Play the 48-hour forecast" })); // at the end: starts again
+    act(() => vi.advanceTimersByTime(500));
+    expect(screen.getByTestId("map")).toHaveTextContent("hour 1");
+    fireEvent.change(slider, { target: { value: "10" } }); // dragging the slider takes over
+    act(() => vi.advanceTimersByTime(2000));
+    expect(screen.getByTestId("map")).toHaveTextContent("hour 10");
+  } finally {
+    vi.useRealTimers();
+  }
 });
