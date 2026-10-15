@@ -29,3 +29,26 @@ DOE_HOURLY_NOW = {"api_table_hourly": [
     {"STATION_ID": "MCAQM001", "STATE_ID": 10, "DATETIME": "2026-10-15T08:00:00", "API": 160, "PARAM_SYMBOL": "**"},
     {"STATION_ID": "CA99X", "STATE_ID": 10, "DATETIME": "2026-10-15T08:00:00", "API": 90, "PARAM_SYMBOL": "**"},
 ]}
+
+AQICN_BOUNDS = {"status": "ok", "data": [
+    {"lat": 6.429928, "lon": 100.210937, "uid": 3001, "aqi": "56",
+     "station": {"name": "Kangar, Perlis, Malaysia", "time": "2026-10-15T09:00:00+09:00"}},
+    {"lat": 1.3521, "lon": 103.8198, "uid": 5555, "aqi": "80",
+     "station": {"name": "Central, Singapore", "time": "2026-10-15T09:00:00+09:00"}},
+    {"lat": 4.5841, "lon": 101.0829, "uid": 4004, "aqi": "120",
+     "station": {"name": "Ipoh, Perak, Malaysia", "time": "2026-10-15T09:00:00+09:00"}},
+]}
+
+AQICN_FEED_KANGAR = {"status": "ok", "data": {
+    "idx": 3001, "aqi": 56, "dominentpol": "",
+    "time": {"s": "2026-10-15 08:00:00", "tz": "+08:00", "v": 1792051200, "iso": "2026-10-15T08:00:00+08:00"},
+    "city": {"name": "Kangar, Perlis, Malaysia", "geo": [6.429928, 100.210937]},
+    "iaqi": {"co": {"v": 0.1}, "h": {"v": 94}, "no2": {"v": 8}, "o3": {"v": 2.3}, "p": {"v": 1011},
+             "pm10": {"v": 52}, "pm25": {"v": 130}, "so2": {"v": 1.7}, "t": {"v": 25}, "w": {"v": 1}},
+    "forecast": {"daily": {}},
+}}
+
+AQICN_FEED_OFFLINE = {"status": "ok", "data": {
+    "idx": 4004, "aqi": "-", "time": {"iso": "2026-10-15T08:00:00+08:00"}, "iaqi": {}}}
+
+AQICN_FEED_ERROR = {"status": "error", "data": "Unknown station"}
