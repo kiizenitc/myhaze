@@ -119,3 +119,20 @@ class Store:
             "select day, lat_bin, lon_bin, frp_sum, detections from fire_grid_daily "
             "where day between %s and %s order by day, lat_bin, lon_bin", (start, end)).fetchall()
         return [FireCell(day, float(lat), float(lon), float(frp), int(n)) for day, lat, lon, frp, n in rows]
+
+    _SERIES_COLUMNS = {"api", "pm25_aqi", "pm10_aqi"}
+
+    def hourly_series(self, source: str, column: str, since: datetime,
+                      param_symbol: str | None = None) -> dict[str, dict[datetime, float]]:
+        if column not in self._SERIES_COLUMNS:
+            raise ValueError(f"unsupported column {column!r}")
+        sql = (f"select station_id, hour, {column} from obs_hourly "
+               f"where source = %s and hour >= %s and {column} is not null")
+        params: list = [source, since]
+        if param_symbol is not None:
+            sql += " and param_symbol = %s"
+            params.append(param_symbol)
+        series: dict[str, dict[datetime, float]] = {}
+        for station_id, hour, value in self.conn.execute(sql, params).fetchall():
+            series.setdefault(station_id, {})[hour] = float(value)
+        return series

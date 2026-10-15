@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -94,3 +94,13 @@ def test_fire_cells_roundtrip_and_upsert(store):
         assert store.fire_cells(day, day) == [FireCell(day, -2.25, 113.75, 25.5, 3)]
     finally:
         store.conn.execute("delete from fire_grid_daily where day = %s", (day,))
+
+
+def test_hourly_series_filters_by_source_and_symbol(store):
+    recent = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
+    store.upsert_obs([Obs(TEST_ID, recent, "doe", api=120, param_symbol="**"),
+                      Obs(TEST_ID, recent - timedelta(hours=1), "doe", api=40, param_symbol="c"),
+                      Obs(TEST_ID, recent, "aqicn", api=120, pm25_aqi=150)])
+    since = recent - timedelta(hours=5)
+    assert store.hourly_series("doe", "api", since, param_symbol="**")[TEST_ID] == {recent: 120.0}
+    assert store.hourly_series("aqicn", "pm25_aqi", since)[TEST_ID] == {recent: 150.0}

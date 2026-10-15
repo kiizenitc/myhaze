@@ -1,0 +1,5 @@
+{
+  "aqicn_table": "us_epa_2024",
+  "my_table": "maaqs2020",
+  "status": "uncalibrated defaults; run python -m myhaze.jobs.calibrate once 24 hours of aqicn hourly data exist"
+}
