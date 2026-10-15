@@ -154,3 +154,42 @@ def test_a_failed_run_log_write_marks_the_run_failed():
     result = archive.run(NOW, SETTINGS, routed_client(HEALTHY, []), BrokenLogStore())
     assert result.status == "failed"
     assert result.details["run_log"] == {"status": "failed", "errors": ["RuntimeError"]}
+
+
+class FakeClock:
+    """Each reading advances time by `step` seconds."""
+    def __init__(self, step):
+        self.now, self.step = 0.0, step
+
+    def __call__(self):
+        self.now += self.step
+        return self.now
+
+
+def test_doe_stops_when_its_time_budget_runs_out():
+    store, stamps = FakeStore(stations=[KANGAR]), []
+
+    def handler(request):
+        if request.url.path.endswith("statelist"):
+            return httpx.Response(200, json=[{"STATE_ID": s} for s in range(1, 17)])
+        stamps.append(request.url.params["stateid"])
+        return httpx.Response(200, json=fixtures.DOE_HOURLY)
+
+    detail = archive.archive_doe(make_client(transport=httpx.MockTransport(handler)), store, NOW,
+                                 budget_s=150, clock=FakeClock(60))
+
+    assert stamps == ["1", "2"]
+    assert detail["status"] == "partial"
+    assert any("time budget" in e for e in detail["errors"])
+
+
+def test_aqicn_stops_when_its_time_budget_runs_out_but_keeps_what_it_got():
+    many = [Station(f"CA{i:02d}X", f"Station {i}", "Test", 1.0 + i, 101.0) for i in range(5)]
+    store = FakeStore(stations=many, aqicn={s.station_id: 3001 for s in many})
+
+    detail = archive.archive_aqicn(routed_client({"/feed/@3001/": fixtures.AQICN_FEED_KANGAR}, []), store,
+                                   SETTINGS, NOW, budget_s=150, clock=FakeClock(60))
+
+    assert detail["written"] == 2
+    assert detail["status"] == "partial"
+    assert any("time budget" in e for e in detail["errors"])

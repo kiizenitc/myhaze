@@ -18,6 +18,9 @@ from ..store import Store
 
 DOE_PAUSE_S = 0.5
 DOE_UP_TO_DATE_SHARE = 0.9
+# Time budgets keep a hanging source from running the job past its workflow timeout.
+DOE_BUDGET_S = 150.0
+AQICN_BUDGET_S = 300.0
 AQICN_MAPPING_MIN_SHARE = 0.8
 
 
@@ -62,13 +65,18 @@ def sync_stations(client, store, settings, now_utc: datetime) -> dict:
     return {"status": "ok", **detail}
 
 
-def archive_doe(client, store, now_utc: datetime, backfill_days: int = 0) -> dict:
+def archive_doe(client, store, now_utc: datetime, backfill_days: int = 0, *,
+                budget_s: float = DOE_BUDGET_S, clock=time.monotonic) -> dict:
     active = len(store.stations())
     if not backfill_days and active and store.count_obs_at("doe", _hour(now_utc)) >= DOE_UP_TO_DATE_SHARE * active:
         return {"status": "skipped", "reason": "hour already stored"}
     rows: dict = {}
     errors: list[str] = []
+    started = clock()
     for state_id in doe.fetch_state_ids(client):
+        if clock() - started > budget_s:
+            errors.append("DOE time budget exceeded; remaining states wait for the next run")
+            break
         for days_back in range(backfill_days + 1):
             try:
                 for obs in doe.fetch_hourly(client, state_id, now_utc - timedelta(days=days_back)):
@@ -84,7 +92,8 @@ def archive_doe(client, store, now_utc: datetime, backfill_days: int = 0) -> dic
             "errors": errors[:5], "error_count": len(errors)}
 
 
-def archive_aqicn(client, store, settings, now_utc: datetime) -> dict:
+def archive_aqicn(client, store, settings, now_utc: datetime, *,
+                  budget_s: float = AQICN_BUDGET_S, clock=time.monotonic) -> dict:
     if not settings.aqicn_token:
         return {"status": "skipped", "reason": "AQICN_TOKEN not set"}
     uids = store.aqicn_uids()
@@ -96,7 +105,11 @@ def archive_aqicn(client, store, settings, now_utc: datetime) -> dict:
     if not todo:
         return {"status": "skipped", "reason": "hour already stored"}
     rows, errors = [], []
+    started = clock()
     for station_id, uid in sorted(todo.items()):
+        if clock() - started > budget_s:
+            errors.append("aqicn time budget exceeded; remaining stations wait for the next run")
+            break
         try:
             obs = aqicn.fetch_feed(client, settings.aqicn_token, uid, station_id)
         except FetchError as exc:
