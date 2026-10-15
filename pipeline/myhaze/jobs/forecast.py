@@ -18,8 +18,8 @@ from ..model.closure import closure_indicator
 from ..model.explain import MIN_EFFECT, explain
 from ..model.hourly import build_path, official_api_path
 from ..model.quantile import contributions, from_text, predict
-from ..publish import (accuracy_payload, fires_payload, first_rain, first_trapped, iso, latest_entry, now_block,
-                       station_payload, when_phrase, write_site_data)
+from ..publish import (accuracy_payload, fires_payload, first_rain, first_trapped, iso, latest_entry, map_payload,
+                       now_block, station_payload, when_phrase, write_site_data)
 from ..rows import HourlyWeather, Station
 from ..sources import openmeteo
 from ..store import open_store
@@ -191,7 +191,8 @@ def main(argv: list[str] | None = None) -> int:
         fire_day = live_fire_day(cells_by_day, generated_at)
         latest_cells = [c for day, cells in cells_by_day.items() if day >= fire_day for c in cells]
         extras = {"fires.json": fires_payload(latest_cells, generated_at),
-                  "accuracy.json": accuracy_payload(model, version, store.verification_summary())}
+                  "accuracy.json": accuracy_payload(model, version, store.verification_summary()),
+                  "map.json": map_payload(payloads, {s.station_id: s for s in stations}, generated_at)}
         write_site_data(args.out, {"generated_at": iso(generated_at), "stations": entries}, payloads, extras)
         if now_hour.hour % ARCHIVE_EVERY_H == 0:
             store.save_forecast_runs(now_hour, [

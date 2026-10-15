@@ -119,3 +119,20 @@ export interface Accuracy {
   backtest: Record<string, LeadReport> | null;
   track_record: Record<string, TrackRecord>;
 }
+
+export interface MapStation {
+  id: string;
+  name: string;
+  state: string;
+  lat: number;
+  lon: number;
+  bands: Band[];
+  wind_from: (number | null)[];
+  wind_kmh: (number | null)[];
+}
+
+export interface MapData {
+  generated_at: string;
+  times: string[];
+  stations: MapStation[];
+}

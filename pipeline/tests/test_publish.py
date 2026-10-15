@@ -94,3 +94,15 @@ def test_trapped_smoke_is_mentioned_only_when_there_is_haze_to_trap():
     hazy = HourlyPath(times, [40.0, 40.0], [60.0, 60.0], [90.0, 90.0], [True, True])
     assert first_trapped(clean) is None
     assert first_trapped(hazy) == morning
+
+def test_map_payload_carries_each_stations_48_hourly_bands_and_winds():
+    from myhaze.publish import map_payload
+
+    good = sample_station()
+    good["hours"][3]["wind_from"], good["hours"][3]["wind_kmh"] = 224.6, 7.4
+    got = map_payload([good], {"CA21B": KLANG}, NOW)
+    assert got["times"] == [h["t"] for h in good["hours"]]
+    entry = got["stations"][0]
+    assert (entry["id"], entry["state"], entry["lat"], entry["lon"]) == ("CA21B", "Selangor", 3.04, 101.45)
+    assert entry["bands"] == [h["band"] for h in good["hours"]]
+    assert (entry["wind_from"][3], entry["wind_kmh"][3], entry["wind_from"][0]) == (225, 7, None)

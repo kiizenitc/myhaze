@@ -1,5 +1,5 @@
 import type { Band } from "@/lib/bands";
-import type { Accuracy, Day, Hour, Latest, StationDetail, StationSummary } from "@/lib/types";
+import type { Accuracy, Day, Hour, Latest, MapData, StationDetail, StationSummary } from "@/lib/types";
 
 // Synthetic values only: never paste real aqicn readings into the repo.
 export const GENERATED = "2026-10-15T02:10:00Z"; // 10:10am MYT
@@ -88,5 +88,17 @@ export function makeAccuracy(): Accuracy {
              model: scores(0.658, 0.758), persistence: scores(0.459, 0.687), cams: scores(0.646, 0.79) },
     },
     track_record: {},
+  };
+}
+
+export function makeMap(): MapData {
+  const hours = makeHours();
+  return {
+    generated_at: GENERATED,
+    times: hours.map((h) => h.t),
+    stations: [{
+      id: "ZZ01A", name: "Testville", state: "Selangor", lat: 3.0, lon: 101.5, bands: hours.map((h) => h.band),
+      wind_from: hours.map((_, h) => (h === 5 ? null : 225)), wind_kmh: hours.map(() => 8),
+    }],
   };
 }

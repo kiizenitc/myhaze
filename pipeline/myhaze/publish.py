@@ -8,6 +8,8 @@ stations/<id>.json  {"id", "name", "state", "generated_at", "estimated", "method
                      "hours": [HOUR x 48], "days": [DAY x 3], "why": [str], "closure": CLOSURE}
 fires.json          {"generated_at", "cells": [[lat, lon, frp], ...]}
 accuracy.json       {"version", "backtest": {...} | null, "track_record": {...}}
+map.json            {"generated_at", "times": [t x 48], "stations": [{"id", "name", "state", "lat", "lon",
+                     "bands": [band x 48], "wind_from": [deg|null x 48], "wind_kmh": [km/h|null x 48]}]}
 
 NOW      {"real_feel", "real_feel_band", "pm25", "real_feel_hour", "official_api", "official_band", "official_hour"}
          (real_feel and pm25 are this hour's reading; null for stations without an hourly feed)
@@ -165,6 +167,20 @@ def latest_entry(payload: dict, station: Station) -> dict:
     return {"id": payload["id"], "name": payload["name"], "state": payload["state"], "lat": station.lat,
             "lon": station.lon, "estimated": payload["estimated"], "method": payload["method"], "now": payload["now"],
             "next24": [h["band"] for h in payload["hours"][:24]], "closure": payload["closure"]}
+
+
+def map_payload(payloads: list[dict], stations: dict[str, Station], generated_at: datetime) -> dict:
+    """map.json: every station's 48 hourly bands and winds, for the map's time slider."""
+    def whole(value):
+        return None if value is None else int(round(value))
+
+    return {"generated_at": iso(generated_at),
+            "times": [h["t"] for h in payloads[0]["hours"]] if payloads else [],
+            "stations": [{"id": p["id"], "name": p["name"], "state": p["state"],
+                          "lat": stations[p["id"]].lat, "lon": stations[p["id"]].lon,
+                          "bands": [h["band"] for h in p["hours"]],
+                          "wind_from": [whole(h["wind_from"]) for h in p["hours"]],
+                          "wind_kmh": [whole(h["wind_kmh"]) for h in p["hours"]]} for p in payloads]}
 
 
 def fires_payload(cells: list[FireCell], generated_at: datetime) -> dict:
