@@ -3,18 +3,18 @@
   "tune_end": "2026-09-30",
   "leads": {
     "1": {
-      "rounds": 107,
+      "rounds": 172,
       "n_train": 5824,
       "test_from": "2026-10-01",
       "test_to": "2026-10-15",
       "model": {
         "n": 930,
-        "band_accuracy": 0.7118,
+        "band_accuracy": 0.7183,
         "unhealthy_days": 499,
-        "pod_unhealthy": 0.8096,
-        "far_unhealthy": 0.0648,
-        "mae_ugm3": 7.87,
-        "coverage_80": 0.7409
+        "pod_unhealthy": 0.8176,
+        "far_unhealthy": 0.0706,
+        "mae_ugm3": 7.79,
+        "coverage_80": 0.7269
       },
       "persistence": {
         "n": 930,
@@ -38,18 +38,18 @@
       "meets_target": false
     },
     "2": {
-      "rounds": 66,
+      "rounds": 70,
       "n_train": 5760,
       "test_from": "2026-10-01",
       "test_to": "2026-10-15",
       "model": {
         "n": 930,
-        "band_accuracy": 0.6581,
+        "band_accuracy": 0.6538,
         "unhealthy_days": 499,
-        "pod_unhealthy": 0.7575,
-        "far_unhealthy": 0.0913,
-        "mae_ugm3": 9.6,
-        "coverage_80": 0.7645
+        "pod_unhealthy": 0.7495,
+        "far_unhealthy": 0.0988,
+        "mae_ugm3": 9.92,
+        "coverage_80": 0.7548
       },
       "persistence": {
         "n": 930,
@@ -73,5 +73,5 @@
       "meets_target": false
     }
   },
-  "version": "20261015T0520Z"
+  "version": "20261015T0554Z"
 }
