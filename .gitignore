@@ -29,3 +29,7 @@ web/out/
 web/public/data/
 web/tsconfig.tsbuildinfo
 web/public/maplibre-gl-worker.mjs
+
+# scheduler
+scheduler/node_modules/
+scheduler/.wrangler/

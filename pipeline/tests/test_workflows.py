@@ -23,3 +23,7 @@ def test_ci_runs_the_web_tests_typecheck_and_build():
     for command in ("npm --prefix web ci", "npm --prefix web test", "npm --prefix web run typecheck",
                     "npm --prefix web run build"):
         assert command in text
+
+def test_ci_runs_the_scheduler_tests():
+    text = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert "npm --prefix scheduler test" in text and "npm --prefix scheduler run typecheck" in text
