@@ -98,6 +98,7 @@ export function makeMap(): MapData {
     times: hours.map((h) => h.t),
     stations: [{
       id: "ZZ01A", name: "Testville", state: "Selangor", lat: 3.0, lon: 101.5, bands: hours.map((h) => h.band),
+      rf: hours.map((h) => h.rf),
     }],
   };
 }

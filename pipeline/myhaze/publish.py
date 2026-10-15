@@ -9,7 +9,7 @@ stations/<id>.json  {"id", "name", "state", "generated_at", "estimated", "method
 fires.json          {"generated_at", "cells": [[lat, lon, frp], ...]}
 accuracy.json       {"version", "backtest": {...} | null, "track_record": {...}}
 map.json            {"generated_at", "times": [t x 48], "stations": [{"id", "name", "state", "lat", "lon",
-                     "bands": [band x 48]}]}
+                     "bands": [band x 48], "rf": [Real Feel x 48]}]}
 wind.json           {"generated_at", "grid": {"lon0", "lat0", "dlon", "dlat", "nx", "ny"}, "times": [t x 16],
                      "u": [[m/s|null x nx*ny] x 16], "v": [...]}  (every 3 h; grid rows from the south, u east, v north)
 
@@ -184,12 +184,13 @@ def wind_payload(field: dict, now_hour: datetime, generated_at: datetime, hours:
 
 
 def map_payload(payloads: list[dict], stations: dict[str, Station], generated_at: datetime) -> dict:
-    """map.json: every station's 48 hourly bands, for the map's time slider (the wind is in wind.json)."""
+    """map.json: every station's 48 hourly bands and Real Feel numbers, for the map's time slider (wind: wind.json)."""
     return {"generated_at": iso(generated_at),
             "times": [h["t"] for h in payloads[0]["hours"]] if payloads else [],
             "stations": [{"id": p["id"], "name": p["name"], "state": p["state"],
                           "lat": stations[p["id"]].lat, "lon": stations[p["id"]].lon,
-                          "bands": [h["band"] for h in p["hours"]]} for p in payloads]}
+                          "bands": [h["band"] for h in p["hours"]],
+                          "rf": [h["rf"] for h in p["hours"]]} for p in payloads]}
 
 
 def fires_payload(cells: list[FireCell], generated_at: datetime) -> dict:

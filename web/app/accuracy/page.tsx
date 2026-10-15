@@ -65,7 +65,7 @@ export default function AccuracyPage() {
   const record = HORIZONS.filter(([key]) => data.track_record[key]);
   const backtest = data.backtest;
   return (
-    <article>
+    <article className="max-w-3xl">
       <h1 className="text-2xl font-semibold">How accurate is this?</h1>
       <p className="mt-2">
         Every forecast here is tested in two ways: on past days the model never saw (the backtest), and against what

@@ -127,6 +127,7 @@ export interface MapStation {
   lat: number;
   lon: number;
   bands: Band[];
+  rf: number[];
 }
 
 export interface MapData {

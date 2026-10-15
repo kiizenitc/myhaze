@@ -63,9 +63,9 @@ export function StationView() {
     );
   }
   return (
-    <article className="grid grid-cols-1 gap-4">
-      <StaleBanner generatedAt={data.generated_at} />
-      <header className="flex flex-wrap items-end justify-between gap-2">
+    <article className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="lg:col-span-2 [&:empty]:hidden"><StaleBanner generatedAt={data.generated_at} /></div>
+      <header className="flex flex-wrap items-end justify-between gap-2 lg:col-span-2">
         <div>
           <h1 className="text-2xl font-semibold">{data.name}</h1>
           <p className="text-[var(--ink-2)]">{`${data.state} · ${updatedLabel(data.generated_at)}`}</p>
@@ -91,7 +91,7 @@ export function StationView() {
         <div className="mt-3"><ClosureNote closure={data.closure} /></div>
       </div>
       {showHours && (
-        <section id="hourly" className={CARD} aria-labelledby="hourly-heading">
+        <section id="hourly" className={`${CARD} lg:col-span-2`} aria-labelledby="hourly-heading">
           <h2 id="hourly-heading" className="text-lg font-semibold">Hour by hour, next 48 hours</h2>
           <HourlyChart hours={data.hours} />
         </section>

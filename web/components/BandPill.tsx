@@ -9,7 +9,7 @@ export function BandPill({ band }: { band: Band | null }) {
     );
   }
   return (
-    <span className="inline-block rounded-full px-2.5 py-0.5 text-sm font-semibold"
+    <span className="inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-sm font-semibold"
           style={{ background: `var(--band-${band})`, color: `var(--on-${band})` }}>
       {BAND_LABEL[band]}
     </span>

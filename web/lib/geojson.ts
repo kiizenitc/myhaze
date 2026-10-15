@@ -16,6 +16,7 @@ export interface StationProps {
   id: string;
   name: string;
   band: Band;
+  rf: number;
 }
 
 export function stationsAt(map: MapData, hour: number): Collection<StationProps> {
@@ -23,7 +24,7 @@ export function stationsAt(map: MapData, hour: number): Collection<StationProps>
     type: "FeatureCollection",
     features: map.stations.map((s) => ({
       type: "Feature", geometry: { type: "Point", coordinates: [s.lon, s.lat] },
-      properties: { id: s.id, name: s.name, band: s.bands[hour] },
+      properties: { id: s.id, name: s.name, band: s.bands[hour], rf: s.rf[hour] },
     })),
   };
 }

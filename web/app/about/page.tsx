@@ -6,7 +6,7 @@ const H2 = "mt-6 text-lg font-semibold";
 
 export default function AboutPage() {
   return (
-    <article className="space-y-2">
+    <article className="max-w-3xl space-y-2">
       <h1 className="text-2xl font-semibold">About MYHaze</h1>
 
       <h2 className={H2}>Two numbers, two questions</h2>

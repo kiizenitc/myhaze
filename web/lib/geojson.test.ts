@@ -4,10 +4,11 @@ import { GENERATED, makeMap } from "@/test/fixtures";
 
 import { firesCollection, stationsAt } from "./geojson";
 
-test("station points carry the chosen hour's band", () => {
+test("station points carry the chosen hour's band and Real Feel number", () => {
   const first = stationsAt(makeMap(), 0).features[0];
   expect(first.geometry.coordinates).toEqual([101.5, 3.0]);
-  expect(first.properties).toEqual({ id: "ZZ01A", name: "Testville", band: "unhealthy" });
+  expect(first.properties).toEqual({ id: "ZZ01A", name: "Testville", band: "unhealthy", rf: 150 });
+  expect(stationsAt(makeMap(), 3).features[0].properties.rf).toBe(165);
 });
 
 test("fire cells become points at longitude, latitude", () => {

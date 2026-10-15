@@ -13,9 +13,9 @@ export function StationCard({ station, generatedAt, sensitive }:
   return (
     <article aria-labelledby={`card-${station.id}`} className="rounded-2xl border border-[var(--line)] bg-[var(--card)] p-4">
       <header className="mb-3 flex items-baseline justify-between gap-2">
-        <h2 id={`card-${station.id}`} className="text-lg font-semibold">
+        <h3 id={`card-${station.id}`} className="text-lg font-semibold">
           <Link href={href} className="hover:underline">{station.name}</Link>
-        </h2>
+        </h3>
         <span className="text-sm text-[var(--ink-2)]">{station.state}</span>
       </header>
       <NowPanel now={station.now} sensitive={sensitive} />

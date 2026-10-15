@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export function Footer() {
   return (
-    <footer className="mx-auto max-w-3xl px-4 pb-8 text-sm text-[var(--ink-2)]">
+    <footer className="mx-auto max-w-[max(1200px,80vw)] px-4 pb-8 text-sm text-[var(--ink-2)]">
       <p>
         Forecasts are estimates and can be wrong. School closures are decided by the Ministry of Education (MOE):
         follow official MOE announcements. This is not medical advice.

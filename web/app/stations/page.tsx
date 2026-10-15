@@ -34,7 +34,7 @@ export default function StationsPage() {
       ) : groups.length === 0 ? (
         <p className="mt-4">{`No station matches “${query.trim()}”.`}</p>
       ) : (
-        groups.map(([state, list]) => {
+        <div className="md:grid md:grid-cols-2 md:gap-x-10 xl:grid-cols-3">{groups.map(([state, list]) => {
           const headingId = `state-${state.replace(/\W+/g, "-")}`;
           return (
             <section key={state} aria-labelledby={headingId} className="mt-6">
@@ -58,7 +58,7 @@ export default function StationsPage() {
               </ul>
             </section>
           );
-        })
+        })}</div>
       )}
     </section>
   );

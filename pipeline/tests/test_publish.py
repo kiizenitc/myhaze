@@ -95,7 +95,7 @@ def test_trapped_smoke_is_mentioned_only_when_there_is_haze_to_trap():
     assert first_trapped(clean) is None
     assert first_trapped(hazy) == morning
 
-def test_map_payload_carries_each_stations_48_hourly_bands():
+def test_map_payload_carries_each_stations_48_hourly_bands_and_real_feel():
     from myhaze.publish import map_payload
 
     good = sample_station()
@@ -104,4 +104,4 @@ def test_map_payload_carries_each_stations_48_hourly_bands():
     entry = got["stations"][0]
     # Wind lives in wind.json now (a flowing field), so stations carry no wind of their own.
     assert entry == {"id": "CA21B", "name": "Klang", "state": "Selangor", "lat": 3.04, "lon": 101.45,
-                     "bands": [h["band"] for h in good["hours"]]}
+                     "bands": [h["band"] for h in good["hours"]], "rf": [h["rf"] for h in good["hours"]]}

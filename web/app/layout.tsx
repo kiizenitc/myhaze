@@ -17,15 +17,15 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body className="min-h-screen">
-        <header className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
+        <header className="mx-auto flex max-w-[max(1200px,80vw)] items-center justify-between px-4 py-3">
           <Link href="/" className="text-xl font-semibold">MYHaze</Link>
           <nav className="flex gap-4 text-[15px] text-[var(--ink-2)]">
             <Link href="/stations/">Stations</Link>
-            <Link href="/map/">Map</Link>
+            <Link href="/accuracy/">Accuracy</Link>
             <Link href="/about/">About</Link>
           </nav>
         </header>
-        <main className="mx-auto max-w-3xl px-4 pb-10">{children}</main>
+        <main className="mx-auto max-w-[max(1200px,80vw)] px-4 pb-10">{children}</main>
         <Footer />
       </body>
     </html>
