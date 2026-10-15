@@ -52,3 +52,13 @@ def test_fetch_cams_sends_coordinates_and_asks_for_gmt():
     assert seen[0]["latitude"] == "6.4299,2.9800"
     assert seen[0]["longitude"] == "100.2109,101.4700"
     assert (seen[0]["hourly"], seen[0]["timezone"], seen[0]["forecast_days"]) == ("pm2_5", "GMT", "5")
+
+
+def test_parse_cams_turns_unreadable_values_into_gaps():
+    payload = {"hourly": {"time": ["2026-10-15T00:00", "2026-10-15T01:00"], "pm2_5": ["x", 5]}}
+    assert openmeteo.parse_cams(payload, STATIONS[:1], SLOT)[0].pm25 == [None, 5.0]
+
+
+def test_parse_cams_skips_locations_with_unreadable_shapes():
+    payload = [{"hourly": {"time": [123], "pm2_5": [1.0]}}, "junk"]
+    assert openmeteo.parse_cams(payload, STATIONS, SLOT) == []

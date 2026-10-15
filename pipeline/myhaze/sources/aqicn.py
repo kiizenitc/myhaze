@@ -89,15 +89,17 @@ def parse_feed(payload: dict, station_id: str) -> Obs | None:
     data = _checked(payload, "feed")
     if not isinstance(data, dict):
         return None
-    iso = (data.get("time") or {}).get("iso")
+    time_info = data.get("time")
+    iso = time_info.get("iso") if isinstance(time_info, dict) else None
     try:
         hour = datetime.fromisoformat(iso).astimezone(timezone.utc).replace(minute=0, second=0, microsecond=0)
     except (TypeError, ValueError):
         return None
-    iaqi = data.get("iaqi") or {}
+    iaqi = data.get("iaqi") if isinstance(data.get("iaqi"), dict) else {}
 
     def reading(key: str) -> float | None:
-        return _num((iaqi.get(key) or {}).get("v"))
+        entry = iaqi.get(key)
+        return _num(entry.get("v")) if isinstance(entry, dict) else None
 
     api, pm25 = _int(data.get("aqi")), _int(reading("pm25"))
     if api is None and pm25 is None:

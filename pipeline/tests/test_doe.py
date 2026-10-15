@@ -48,3 +48,19 @@ def test_fetch_state_ids_reads_the_state_list():
 def test_fetch_state_ids_rejects_an_unexpected_shape():
     with pytest.raises(FetchError):
         doe.fetch_state_ids(client_returning({"oops": 1}))
+
+
+def test_parse_hourly_tolerates_unexpected_shapes():
+    assert doe.parse_hourly([]) == []
+    assert doe.parse_hourly(None) == []
+    rows = doe.parse_hourly({"api_table_hourly": [
+        "not a row",
+        {"STATION_ID": "CA01R", "DATETIME": 1792051200, "API": 50},
+        {"STATION_ID": "CA01R", "DATETIME": "2026-10-15T09:00:00", "API": 51},
+    ]})
+    assert [(r.station_id, r.api) for r in rows] == [("CA01R", 51)]
+
+
+def test_parse_stations_tolerates_unexpected_shapes():
+    assert doe.parse_stations([]) == []
+    assert doe.parse_stations({"data": ["x", None]}) == []

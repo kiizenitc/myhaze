@@ -31,6 +31,15 @@ def _hour(now: datetime) -> datetime:
     return now.astimezone(timezone.utc).replace(minute=0, second=0, microsecond=0)
 
 
+def _safe_message(exc: Exception) -> str:
+    """FetchError text is vetted (no URLs or keys); any other message might echo a secret, so keep only its type."""
+    return str(exc) if isinstance(exc, FetchError) else type(exc).__name__
+
+
+def _failure(exc: Exception) -> dict:
+    return {"status": "failed", "errors": [_safe_message(exc)]}
+
+
 def sync_stations(client, store, settings, now_utc: datetime) -> dict:
     if store.stations() and now_utc.minute >= 15:
         return {"status": "skipped", "reason": "synced at the start of the hour"}
@@ -64,8 +73,8 @@ def archive_doe(client, store, now_utc: datetime, backfill_days: int = 0) -> dic
             try:
                 for obs in doe.fetch_hourly(client, state_id, now_utc - timedelta(days=days_back)):
                     rows[(obs.station_id, obs.hour)] = obs
-            except FetchError as exc:
-                errors.append(f"state {state_id}: {exc}")
+            except Exception as exc:
+                errors.append(f"state {state_id}: {_safe_message(exc)}")
             time.sleep(DOE_PAUSE_S)
     if not rows and not errors:
         errors.append("DOE returned no readings")
@@ -111,25 +120,30 @@ def archive_cams(client, store, now_utc: datetime) -> dict:
 
 def run(now_utc: datetime, settings, client, store, *, doe_backfill_days: int = 0) -> RunResult:
     started = datetime.now(timezone.utc)
+    # aqicn first: its hourly readings can never be fetched again, while DOE keeps about 7 days.
     steps = {
         "stations": lambda: sync_stations(client, store, settings, now_utc),
-        "doe": lambda: archive_doe(client, store, now_utc, doe_backfill_days),
         "aqicn": lambda: archive_aqicn(client, store, settings, now_utc),
+        "doe": lambda: archive_doe(client, store, now_utc, doe_backfill_days),
         "cams": lambda: archive_cams(client, store, now_utc),
     }
     details: dict[str, dict] = {}
     for name, step in steps.items():
         try:
             details[name] = step()
-        except FetchError as exc:
-            details[name] = {"status": "failed", "errors": [str(exc)]}
+        except Exception as exc:
+            details[name] = _failure(exc)
     if details["doe"]["status"] == "failed" and details["aqicn"]["status"] == "failed":
         status = "failed"
     elif any(d["status"] in ("failed", "partial") for d in details.values()):
         status = "partial"
     else:
         status = "ok"
-    store.log_run("archive", started, datetime.now(timezone.utc), status, details)
+    try:
+        store.log_run("archive", started, datetime.now(timezone.utc), status, details)
+    except Exception as exc:
+        details["run_log"] = _failure(exc)
+        status = "failed"
     return RunResult(status, details)
 
 

@@ -59,3 +59,15 @@ def test_fetch_feed_sends_the_token_as_a_query_parameter():
     obs = aqicn.fetch_feed(make_client(transport=httpx.MockTransport(handler)), "tok123", 3001, "CA01R")
     assert seen == {"path": "/feed/@3001/", "token": "tok123"}
     assert obs.station_id == "CA01R"
+
+
+def test_parse_feed_returns_none_when_time_is_not_an_object():
+    payload = {"status": "ok", "data": {"aqi": 50, "time": "2026-10-15 08:00:00", "iaqi": {"pm25": {"v": 60}}}}
+    assert aqicn.parse_feed(payload, "CA01R") is None
+
+
+def test_parse_feed_ignores_malformed_readings():
+    payload = {"status": "ok", "data": {"aqi": 50, "time": {"iso": "2026-10-15T08:00:00+08:00"},
+                                        "iaqi": {"pm25": 60, "t": {"v": "x"}}}}
+    obs = aqicn.parse_feed(payload, "CA01R")
+    assert (obs.api, obs.pm25_aqi, obs.temp_c) == (50, None, None)

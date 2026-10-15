@@ -1,6 +1,7 @@
 """Open-Meteo air-quality API: CAMS PM2.5 forecasts at station points."""
 from __future__ import annotations
 
+import math
 from datetime import datetime, timezone
 
 import httpx
@@ -24,14 +25,26 @@ def parse_cams(payload, stations: list[Station], issued_slot: datetime) -> list[
         raise FetchError(f"Open-Meteo returned {len(items)} locations for {len(stations)} stations")
     forecasts = []
     for station, item in zip(stations, items):
-        hourly = (item or {}).get("hourly") or {}
-        times, values = hourly.get("time") or [], hourly.get("pm2_5") or []
-        if not times or len(times) != len(values):
+        hourly = item.get("hourly") if isinstance(item, dict) else None
+        if not isinstance(hourly, dict):
             continue
-        first_valid = datetime.fromisoformat(times[0]).replace(tzinfo=timezone.utc)
-        forecasts.append(CamsForecast(station.station_id, issued_slot, first_valid,
-                                      [None if v is None else float(v) for v in values]))
+        times, values = hourly.get("time") or [], hourly.get("pm2_5") or []
+        if not isinstance(times, list) or not isinstance(values, list) or not times or len(times) != len(values):
+            continue
+        try:
+            first_valid = datetime.fromisoformat(times[0]).replace(tzinfo=timezone.utc)
+        except (TypeError, ValueError):
+            continue
+        forecasts.append(CamsForecast(station.station_id, issued_slot, first_valid, [_value(v) for v in values]))
     return forecasts
+
+
+def _value(raw) -> float | None:
+    try:
+        number = float(raw)
+    except (TypeError, ValueError):
+        return None
+    return number if math.isfinite(number) else None
 
 
 def fetch_cams(client: httpx.Client, stations: list[Station], issued_slot: datetime) -> list[CamsForecast]:

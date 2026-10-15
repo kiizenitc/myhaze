@@ -118,3 +118,39 @@ def test_missing_token_skips_aqicn_without_failing():
     store = FakeStore(stations=[KANGAR])
     detail = archive.archive_aqicn(routed_client(HEALTHY, []), store, Settings(None, "x"), NOW)
     assert detail == {"status": "skipped", "reason": "AQICN_TOKEN not set"}
+
+
+class ExplodingDoeStore(FakeStore):
+    def count_obs_at(self, source, hour):
+        raise RuntimeError("database said: password=SECRETPW")
+
+
+class BrokenLogStore(FakeStore):
+    def log_run(self, *args):
+        raise RuntimeError("connection lost")
+
+
+def test_an_unexpected_error_in_one_step_does_not_stop_the_others():
+    store = ExplodingDoeStore(stations=[KANGAR], aqicn={"CA01R": 3001})
+    routes = dict(HEALTHY, **{"/v1/air-quality": fixtures.CAMS_TWO_STATIONS[0]})
+
+    result = archive.run(NOW.replace(minute=30), SETTINGS, routed_client(routes, []), store)
+
+    assert result.details["doe"] == {"status": "failed", "errors": ["RuntimeError"]}
+    assert ("CA01R", HOUR, "aqicn") in store.obs
+    assert result.details["cams"]["status"] == "ok"
+    assert store.runs and "SECRETPW" not in str(store.runs[-1])
+
+
+def test_aqicn_is_archived_before_doe_is_touched():
+    calls = []
+    archive.run(NOW, SETTINGS, routed_client(HEALTHY, calls), FakeStore())
+    first_feed = calls.index("/feed/@3001/")
+    first_doe = next(i for i, path in enumerate(calls) if path.endswith("statelist"))
+    assert first_feed < first_doe
+
+
+def test_a_failed_run_log_write_marks_the_run_failed():
+    result = archive.run(NOW, SETTINGS, routed_client(HEALTHY, []), BrokenLogStore())
+    assert result.status == "failed"
+    assert result.details["run_log"] == {"status": "failed", "errors": ["RuntimeError"]}

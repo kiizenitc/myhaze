@@ -30,9 +30,15 @@ def _utc_hour(naive_myt: str) -> datetime:
     return local.astimezone(timezone.utc).replace(minute=0, second=0, microsecond=0)
 
 
+def _rows(payload, key: str) -> list[dict]:
+    """The dict rows under `key`, ignoring anything DOE sends that isn't shaped as expected."""
+    rows = payload.get(key) if isinstance(payload, dict) else None
+    return [row for row in rows if isinstance(row, dict)] if isinstance(rows, list) else []
+
+
 def parse_stations(payload: dict) -> list[Station]:
     stations = []
-    for row in payload.get("data") or []:
+    for row in _rows(payload, "data"):
         try:
             stations.append(Station(
                 station_id=str(row["STATION_ID"]).strip(),
@@ -48,14 +54,14 @@ def parse_stations(payload: dict) -> list[Station]:
 
 def parse_hourly(payload: dict) -> list[Obs]:
     rows = []
-    for row in payload.get("api_table_hourly") or []:
+    for row in _rows(payload, "api_table_hourly"):
         api = _api_value(row.get("API"))
         station_id = str(row.get("STATION_ID") or "").strip()
         if api is None or not station_id or not row.get("DATETIME"):
             continue
         try:
             hour = _utc_hour(row["DATETIME"])
-        except ValueError:
+        except (TypeError, ValueError):
             continue
         rows.append(Obs(station_id=station_id, hour=hour, source="doe", api=api,
                         param_symbol=row.get("PARAM_SYMBOL") or None))
