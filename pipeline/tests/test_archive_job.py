@@ -234,3 +234,17 @@ def test_aqicn_without_any_matched_station_is_a_failure():
 def test_doe_readings_only_for_unknown_stations_is_a_failure():
     detail = archive.archive_doe(routed_client(HEALTHY, []), FakeStore(stations=[IPOH]), NOW)
     assert (detail["written"], detail["status"]) == (0, "failed")
+
+
+def test_main_reports_a_connection_failure_without_echoing_it(monkeypatch, capsys):
+    monkeypatch.setenv("SUPABASE_DB_URL", "postgresql://user:SECRETPW@db.example/postgres")
+
+    def refuse(cls, db_url):
+        raise RuntimeError(f"invalid connection option in {db_url}")
+
+    monkeypatch.setattr(archive.Store, "connect", classmethod(refuse))
+
+    assert archive.main([]) == 1
+    output = capsys.readouterr()
+    assert "SECRETPW" not in output.out + output.err
+    assert "RuntimeError" in output.err

@@ -181,7 +181,12 @@ def main(argv: list[str] | None = None) -> int:
     if not settings.db_url:
         print("SUPABASE_DB_URL is not set", file=sys.stderr)
         return 2
-    store = Store.connect(settings.db_url)
+    try:
+        store = Store.connect(settings.db_url)
+    except Exception as exc:
+        # Connection errors can quote the URL, password included, and Actions logs are public.
+        print(f"could not connect to the database ({type(exc).__name__})", file=sys.stderr)
+        return 1
     try:
         with make_client() as client:
             result = run(datetime.now(timezone.utc), settings, client, store,
