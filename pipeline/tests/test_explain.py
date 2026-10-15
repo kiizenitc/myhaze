@@ -28,3 +28,9 @@ def test_explain_without_contributions_keeps_only_weather_notes():
 
 def test_compass():
     assert [compass(d) for d in (0, 44, 90, 225, 350)] == ["north", "north-east", "east", "south-west", "north"]
+
+
+def test_explain_describes_the_regional_smoke_outlook():
+    row = FeatureRow("S", D, 1, D + timedelta(days=1), {}, None)
+    assert explain({"cams_target": 0.4}, row) == ["Regional smoke forecasts expect more haze to arrive."]
+    assert explain({"cams_target": -0.3}, row) == ["Regional smoke forecasts expect the haze to ease."]

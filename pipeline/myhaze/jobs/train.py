@@ -35,7 +35,8 @@ def collect_rows(store, today: date):
     weather = store.weather_daily(start, today + timedelta(days=2))
     cams_daily = store.cams_daily(start - timedelta(days=7), today)
     issue_days = [start + timedelta(days=i) for i in range((today - start).days)]
-    return build_rows(store.stations(), daily_pm, cells_by_day, weather, issue_days), cams_daily, daily_pm
+    return (build_rows(store.stations(), daily_pm, cells_by_day, weather, issue_days, cams_daily=cams_daily),
+            cams_daily, daily_pm)
 
 
 def main(argv: list[str] | None = None) -> int:

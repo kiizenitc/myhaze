@@ -10,6 +10,7 @@ FAMILIES = {
     "rain": ("rain_mm", "wet_hours", "rain_fire_regions"),
     "wind": ("wind10_kmh", "wind120_kmh", "wind_from_sin", "wind_from_cos"),
     "persistence": ("pm_d0", "pm_d1", "pm_d2", "pm_trend", "region_pm_d0"),
+    "outlook": ("cams_target", "cams_ratio"),
 }
 REGION_NAMES = {"sumatra": "Sumatra", "kalimantan": "Kalimantan", "peninsular": "Peninsular Malaysia",
                 "my_borneo": "Sarawak and Sabah"}
@@ -37,6 +38,9 @@ def _sentence(family: str, worse: bool, row: FeatureRow, rain_window: str | None
             return "Little rain is expected to wash the smoke out."
         return f"Rain expected {rain_window} should help clear the air." if rain_window else \
             "Rain on the way should help clear the air."
+    if family == "outlook":
+        return "Regional smoke forecasts expect more haze to arrive." if worse else \
+            "Regional smoke forecasts expect the haze to ease."
     if family == "wind":
         s, c = row.x.get("wind_from_sin"), row.x.get("wind_from_cos")
         if s is None or c is None:

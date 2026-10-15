@@ -150,7 +150,7 @@ def main(argv: list[str] | None = None) -> int:
         pm_values = {s.station_id: pm_now(observed.get(s.station_id, {}), official_now.get(s.station_id), now_hour)[0]
                      for s in stations}
         rows = build_live_rows(stations, now_hour, {k: v for k, v in pm_values.items() if v is not None}, daily_pm,
-                               cells_by_day, weather_latest)
+                               cells_by_day, weather_latest, cams_daily=cams_daily)
         levels, contribs, methods = forecast_levels(rows, model, cams_daily, daily_pm)
         lead1 = {r.station_id: r for r in rows if r.lead == 1}
         payloads, entries = [], []

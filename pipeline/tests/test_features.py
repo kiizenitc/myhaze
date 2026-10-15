@@ -60,3 +60,17 @@ def test_live_rows_use_the_current_reading_and_the_live_forecast():
     rows = build_live_rows([KLANG], now, {"CA21B": 88.0}, past_pm, cells, hw)
     assert [(r.lead, r.x["pm_d0"], r.y) for r in rows] == [(1, 88.0, None), (2, 88.0, None)]
     assert rows[0].x["wind_from_sin"] == pytest.approx(-0.7071, abs=1e-3)
+
+
+def test_cams_features_use_the_target_forecast_and_the_recent_error_ratio():
+    import math
+
+    daily_pm, cells, weather = inputs()
+    cams = {(s.station_id, ISSUE - timedelta(days=k)): 25.0 for s in (KLANG, KUCHING) for k in range(7)}
+    cams.update({(s.station_id, ISSUE + timedelta(days=lead)): 40.0 for s in (KLANG, KUCHING) for lead in (1, 2)})
+    rows = build_rows([KLANG, KUCHING], daily_pm, cells, weather, [ISSUE], cams_daily=cams)
+    klang_1 = next(r for r in rows if r.station_id == "CA21B" and r.lead == 1)
+    observed = sum(daily_pm[("CA21B", ISSUE - timedelta(days=k))] for k in range(5))  # pm history covers 5 days
+    assert klang_1.x["cams_target"] == pytest.approx(math.log1p(40.0))
+    assert klang_1.x["cams_ratio"] == pytest.approx(observed / (25.0 * 5))
+    assert build_rows([KLANG], daily_pm, cells, weather, [ISSUE])[0].x["cams_target"] is None

@@ -2,7 +2,9 @@
 
 Issue day D (a Malaysia date) predicts the daily-mean PM2.5 of target day D + lead from:
 PM2.5 up to and including D; fire cells of the last complete UTC day before the issue (D - 1)
-and three days before the issue (D - 3, for the trend); and weather *forecasts* for the target day.
+and three days before the issue (D - 3, for the trend); weather *forecasts* for the target day; and
+CAMS's PM2.5 for the target day with this station's recent observed/CAMS ratio. (CAMS history comes from
+Open-Meteo's near-real-time archive, so the backtest is somewhat flattering for it; the owner accepted this.)
 """
 from __future__ import annotations
 
@@ -25,7 +27,8 @@ REGION_GROUP = {"Perlis": 0, "Kedah": 0, "Pulau Pinang": 0, "Perak": 0, "Selango
 FIRE_REGIONS = ("sumatra", "kalimantan", "peninsular", "my_borneo")
 FEATURES = ("pm_d0", "pm_d1", "pm_d2", "pm_trend", "region_pm_d0", "upwind_fire", "fire_sumatra", "fire_kalimantan",
             "fire_peninsular", "fire_my_borneo", "fire_trend", "rain_mm", "wet_hours", "rain_fire_regions",
-            "wind10_kmh", "wind120_kmh", "wind_from_sin", "wind_from_cos", "rh_mean", "lat", "lon", "region_group")
+            "wind10_kmh", "wind120_kmh", "wind_from_sin", "wind_from_cos", "rh_mean", "lat", "lon", "region_group",
+            "cams_target", "cams_ratio")
 MONOTONE = {"upwind_fire": 1, "rain_mm": -1, "rain_fire_regions": -1}
 UPWIND_EFOLD_KM = 500.0
 EARTH_KM = 6371.0
@@ -90,13 +93,30 @@ def _region_means(stations: list[Station], daily_pm: dict, day: date) -> dict[in
     return {g: sum(v) / len(v) for g, v in groups.items()}
 
 
+def cams_ratio(station_id: str, issue_day: date, cams_daily: dict[tuple[str, date], float],
+               daily_pm: dict[tuple[str, date], float], window: int = 7, min_days: int = 3) -> float | None:
+    """How far CAMS was off at this station over the week ending on the issue day (observed / CAMS)."""
+    observed = modelled = 0.0
+    days = 0
+    for k in range(window):
+        day = issue_day - timedelta(days=k)
+        obs, cams = daily_pm.get((station_id, day)), cams_daily.get((station_id, day))
+        if obs is not None and cams is not None and cams > 0:
+            observed += obs
+            modelled += cams
+            days += 1
+    return observed / modelled if days >= min_days and modelled > 0 else None
+
+
 def _log_ratio(a: float | None, b: float | None) -> float | None:
     return None if a is None or b is None else math.log1p(a) - math.log1p(b)
 
 
 def build_rows(stations: list[Station], daily_pm: dict[tuple[str, date], float],
                cells_by_day: dict[date, list[FireCell]], weather: dict[tuple[str, date, int], WeatherDay],
-               issue_days: list[date], leads: tuple[int, ...] = (1, 2)) -> list[FeatureRow]:
+               issue_days: list[date], leads: tuple[int, ...] = (1, 2),
+               cams_daily: dict[tuple[str, date], float] | None = None) -> list[FeatureRow]:
+    cams_daily = cams_daily or {}
     arrays_cache: dict[date, CellArrays | None] = {}
 
     def arrays_for(day: date) -> CellArrays | None:
@@ -134,6 +154,9 @@ def build_rows(stations: list[Station], daily_pm: dict[tuple[str, date], float],
                     "wind_from_cos": math.cos(math.radians(wind_from)) if wind_from is not None else None,
                     "rh_mean": wd.rh_mean if wd else None,
                     "lat": s.lat, "lon": s.lon, "region_group": float(REGION_GROUP.get(s.state, 0)),
+                    "cams_target": (math.log1p(cams_daily[(s.station_id, target)])
+                                    if (s.station_id, target) in cams_daily else None),
+                    "cams_ratio": cams_ratio(s.station_id, issue, cams_daily, daily_pm),
                 }
                 rows.append(FeatureRow(s.station_id, issue, lead, target, x, daily_pm.get((s.station_id, target)),
                                        upwind))
@@ -154,8 +177,10 @@ def live_weather_days(latest: dict[str, HourlyWeather], issue: date,
 
 def build_live_rows(stations: list[Station], now: datetime, pm_now: dict[str, float],
                     daily_pm: dict[tuple[str, date], float], cells_by_day: dict[date, list[FireCell]],
-                    weather_latest: dict[str, HourlyWeather], leads: tuple[int, ...] = (1, 2)) -> list[FeatureRow]:
+                    weather_latest: dict[str, HourlyWeather], leads: tuple[int, ...] = (1, 2),
+                    cams_daily: dict[tuple[str, date], float] | None = None) -> list[FeatureRow]:
     issue = now.astimezone(MYT).date()
     pm = {key: value for key, value in daily_pm.items() if key[1] < issue}
     pm.update({(station_id, issue): value for station_id, value in pm_now.items()})
-    return build_rows(stations, pm, cells_by_day, live_weather_days(weather_latest, issue, leads), [issue], leads)
+    return build_rows(stations, pm, cells_by_day, live_weather_days(weather_latest, issue, leads), [issue], leads,
+                      cams_daily)
