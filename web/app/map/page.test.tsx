@@ -24,6 +24,7 @@ test("the time slider steps through the 48 hours in Malaysia time, with a band l
   expect(screen.getByTestId("map")).toHaveTextContent("hour 14");
   expect(screen.getByText("Fri 16 Oct 12am")).toBeInTheDocument();
   expect(screen.getByText(/Moving lines show the wind/)).toBeInTheDocument();
+  expect(screen.getByText(/Data delayed/)).toBeInTheDocument(); // the fixture is hours old (the slider output is a status too)
   for (const word of ["Good", "Moderate", "Unhealthy", "Very unhealthy", "Hazardous"]) {
     expect(screen.getByText(word)).toBeInTheDocument();
   }

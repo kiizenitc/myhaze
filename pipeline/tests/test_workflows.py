@@ -11,10 +11,11 @@ def test_every_github_action_is_pinned_to_a_commit_sha():
     assert uses, "no workflows found"
     assert [u for u in uses if not re.fullmatch(r"[\w.-]+/[\w.-]+@[0-9a-f]{40}", u)] == []
 
-def test_the_forecast_workflow_builds_the_site_then_deploys_only_with_cloudflare_secrets():
+def test_the_forecast_runs_before_any_web_step_then_deploys_only_with_cloudflare_secrets():
+    # The forecast archive (and the track record) must not depend on npm or on the web build succeeding.
     text = (REPO_ROOT / ".github" / "workflows" / "forecast.yml").read_text(encoding="utf-8")
-    assert text.index("npm --prefix web run build") < text.index("myhaze.jobs.forecast")
-    assert '--out "$GITHUB_WORKSPACE/web/out/data"' in text
+    assert text.index("myhaze.jobs.forecast") < text.index("setup-node") < text.index("npm --prefix web ci")
+    assert '--out "$GITHUB_WORKSPACE/site-data"' in text and "cp -R site-data web/out/data" in text
     assert "if: env.HAS_CLOUDFLARE == 'true'" in text and "npx wrangler deploy" in text
 
 

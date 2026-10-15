@@ -49,3 +49,10 @@ export function percent(value: number | null | undefined): string {
 export function dateMYT(iso: string): string {
   return myt(iso).toISOString().slice(0, 10);
 }
+
+/** "Updated 9:10pm", with the day added once that is not today in Malaysia. */
+export function updatedLabel(iso: string, now: number = Date.now()): string {
+  const today = dateMYT(new Date(now).toISOString());
+  const day = dateMYT(iso);
+  return day === today ? `Updated ${timeMYT(iso)}` : `Updated ${weekdayDate(day)}, ${timeMYT(iso)}`;
+}

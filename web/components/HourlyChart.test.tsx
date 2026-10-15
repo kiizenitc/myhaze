@@ -43,3 +43,10 @@ test("tapping a point shows that hour's numbers (phones send taps, not hovers)",
   fireEvent.click(chart, { clientX: 712, clientY: 100 }); // the last hour
   expect(screen.getByRole("tooltip")).toHaveTextContent("Sat 17 Oct 9am");
 });
+
+test("a vertical swipe on the chart still scrolls the page", () => {
+  render(<HourlyChart hours={makeHours()} />);
+  const chart = screen.getByRole("img", { name: /Hour-by-hour forecast chart/ });
+  expect(chart.getAttribute("class")).toMatch(/touch-pan-x/);
+  expect(chart.getAttribute("class")).toMatch(/touch-pan-y/);
+});

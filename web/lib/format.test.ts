@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { dateMYT, hourLabel, hourOfIso, hourStart, isStale, percent, timeMYT, weekdayDate } from "./format";
+import { dateMYT, hourLabel, hourOfIso, hourStart, isStale, percent, timeMYT, updatedLabel, weekdayDate } from "./format";
 
 test("times show in Malaysia time whatever the device time zone", () => {
   // The test script runs with TZ=America/New_York.
@@ -29,4 +29,10 @@ test("staleness and helpers", () => {
 test("the Malaysia date of an instant", () => {
   expect(dateMYT("2026-10-15T15:59:00Z")).toBe("2026-10-15");
   expect(dateMYT("2026-10-15T16:00:00Z")).toBe("2026-10-16"); // midnight in Malaysia
+});
+
+test("'Updated' carries the date once it is not today in Malaysia", () => {
+  const now = Date.parse("2026-10-15T02:00:00Z"); // 10am Thursday
+  expect(updatedLabel("2026-10-15T01:10:00Z", now)).toBe("Updated 9:10am");
+  expect(updatedLabel("2026-10-14T13:10:00Z", now)).toBe("Updated Wed 14 Oct, 9:10pm");
 });

@@ -71,6 +71,11 @@ export default function AccuracyPage() {
         Every forecast here is tested in two ways: on past days the model never saw (the backtest), and against what
         really happened after we published it (the live track record). Both are shown as they are, good or bad.
       </p>
+      <p className="mt-2 text-[var(--ink-2)]">
+        How sure are these numbers? The backtest covers about a thousand station-days from a single haze season, so
+        each percentage could be a few points higher or lower. It scores daily averages; for hour-by-hour accuracy,
+        only the live track record below can tell.
+      </p>
       {backtest ? (
         LEADS.map(([lead, label, aim]) => backtest[lead]
           ? <LeadSection key={lead} label={label} aim={aim} lead={lead} report={backtest[lead]} /> : null)

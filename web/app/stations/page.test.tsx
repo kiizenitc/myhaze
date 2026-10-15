@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, test, vi } from "vitest";
 
@@ -25,4 +25,13 @@ test("saving from the list remembers the station", async () => {
   render(<StationsPage />);
   await userEvent.click(await screen.findByRole("button", { name: /Save Testville/ }));
   expect(loadSaved()).toEqual(["ZZ01A"]);
+});
+
+test("every pill says which number it is, and old data is flagged", async () => {
+  render(<StationsPage />);
+  const estimated = (await screen.findByRole("link", { name: "Sampleton" })).closest("li")!;
+  expect(within(estimated).getByText("No hourly reading · official 24-hour average")).toBeVisible();
+  const live = screen.getByRole("link", { name: "Testville" }).closest("li")!;
+  expect(within(live).getByText("Real Feel now")).toBeVisible();
+  expect(screen.getByRole("status")).toHaveTextContent("Data delayed"); // the fixture is hours old
 });

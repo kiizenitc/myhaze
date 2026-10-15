@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { BandPill } from "@/components/BandPill";
 import { SaveToggle } from "@/components/SaveToggle";
+import { StaleBanner } from "@/components/StaleBanner";
 import { useData } from "@/lib/data";
 import { filterStations, groupByState } from "@/lib/stations";
 import type { Latest } from "@/lib/types";
@@ -15,6 +16,7 @@ export default function StationsPage() {
   const groups = data ? groupByState(filterStations(data.stations, query)) : [];
   return (
     <section>
+      {data && <StaleBanner generatedAt={data.generated_at} />}
       <h1 className="text-2xl font-semibold">Choose your stations</h1>
       <p className="mt-1 text-[var(--ink-2)]">
         Save the stations closest to home, school, tuition or sports. Saved stations show on the home page, on this
@@ -40,9 +42,14 @@ export default function StationsPage() {
               <ul className="mt-1">
                 {list.map((s) => (
                   <li key={s.id} className="flex items-center justify-between gap-3 border-b border-[var(--line)] py-2.5">
-                    <Link href={`/station/?id=${s.id}`} className="font-medium hover:underline">{s.name}</Link>
+                    <span>
+                      <Link href={`/station/?id=${s.id}`} className="font-medium hover:underline">{s.name}</Link>
+                      {/* Never mix the two numbers without saying which one this is. */}
+                      <span className="block text-xs text-[var(--ink-2)]">
+                        {s.now.real_feel_band ? "Real Feel now" : "No hourly reading · official 24-hour average"}
+                      </span>
+                    </span>
                     <span className="flex shrink-0 items-center gap-2">
-                      <span className="sr-only">{s.now.real_feel_band ? "Real Feel now:" : "Official API now:"}</span>
                       <BandPill band={s.now.real_feel_band ?? s.now.official_band} />
                       <SaveToggle id={s.id} name={s.name} />
                     </span>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { hourStart, timeMYT } from "@/lib/format";
+import { hourStart, updatedLabel } from "@/lib/format";
 import type { StationSummary } from "@/lib/types";
 
 import { ClosureNote } from "./ClosureNote";
@@ -22,7 +22,7 @@ export function StationCard({ station, generatedAt, sensitive }:
       <div className="mt-4"><HourStrip bands={station.next24} start={hourStart(generatedAt)} /></div>
       <div className="mt-4"><ClosureNote closure={station.closure} compact /></div>
       <footer className="mt-3 flex items-center justify-between text-sm text-[var(--ink-2)]">
-        <span>Updated {timeMYT(generatedAt)}</span>
+        <span>{updatedLabel(generatedAt)}</span>
         <Link href={href} className="font-medium text-[var(--accent)]">Plan the day →</Link>
       </footer>
     </article>

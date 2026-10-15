@@ -30,3 +30,10 @@ test("the live track record shows the checked hours", async () => {
   expect(row).toHaveTextContent("74%");
   expect(row).toHaveTextContent("4800 hours");
 });
+
+test("the honest limits are stated", async () => {
+  serve(makeAccuracy());
+  render(<AccuracyPage />);
+  expect(await screen.findByText(/a few points higher or lower/)).toBeInTheDocument();
+  expect(screen.getByText(/only the live track record/)).toBeInTheDocument();
+});

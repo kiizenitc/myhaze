@@ -13,7 +13,7 @@ import { SensitiveSwitch } from "@/components/SensitiveSwitch";
 import { StaleBanner } from "@/components/StaleBanner";
 import { WhyList } from "@/components/WhyList";
 import { useData } from "@/lib/data";
-import { dateMYT, hourOfIso, timeMYT, weekdayDate } from "@/lib/format";
+import { dateMYT, hourOfIso, updatedLabel, weekdayDate } from "@/lib/format";
 import { loadSensitive, saveSensitive } from "@/lib/saved";
 import type { Hour, StationDetail } from "@/lib/types";
 
@@ -68,7 +68,7 @@ export function StationView() {
       <header className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h1 className="text-2xl font-semibold">{data.name}</h1>
-          <p className="text-[var(--ink-2)]">{`${data.state} · Updated ${timeMYT(data.generated_at)}`}</p>
+          <p className="text-[var(--ink-2)]">{`${data.state} · ${updatedLabel(data.generated_at)}`}</p>
         </div>
         <SaveToggle id={data.id} name={data.name} />
       </header>

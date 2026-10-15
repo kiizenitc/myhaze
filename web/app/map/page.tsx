@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { BandPill } from "@/components/BandPill";
 import { SaveToggle } from "@/components/SaveToggle";
+import { StaleBanner } from "@/components/StaleBanner";
 import { BANDS } from "@/lib/bands";
 import { useData } from "@/lib/data";
 import { dateMYT, hourOfIso, weekdayDate } from "@/lib/format";
@@ -32,6 +33,7 @@ export default function MapPage() {
   const station = data.stations.find((s) => s.id === picked);
   return (
     <section className="grid grid-cols-1 gap-3">
+      <StaleBanner generatedAt={data.generated_at} />
       <h1 className="text-2xl font-semibold">Map</h1>
       <p className="text-[var(--ink-2)]">
         Station dots show the forecast Real Feel. Small dark-red dots are fires seen by satellite on the latest full

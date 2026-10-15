@@ -36,3 +36,13 @@ test("a later successful refresh clears the error", async () => {
   await waitFor(() => expect(screen.getByText("error: HTTP 503")).toBeInTheDocument());
   await waitFor(() => expect(screen.getByText("value: 9")).toBeInTheDocument());
 });
+
+test("coming back to the page (phone unlocked, tab reopened, back online) refreshes at once", async () => {
+  const fetchMock = vi.fn(async () => new Response(JSON.stringify({ value: 1 }), { status: 200 }));
+  vi.stubGlobal("fetch", fetchMock);
+  render(<Probe path="/data/x.json" />);
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+  document.dispatchEvent(new Event("visibilitychange"));
+  window.dispatchEvent(new Event("online"));
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
+});

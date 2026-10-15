@@ -87,7 +87,7 @@ export function HourlyChart({ hours }: { hours: Hour[] }) {
           <div className="overflow-x-auto">
             <div className="relative w-full min-w-[660px]">
               <svg role="img" aria-label="Hour-by-hour forecast chart: Real Feel with its likely range, and the official API"
-                   viewBox={`0 0 ${W} ${H}`} className="w-full touch-pan-x select-none" tabIndex={0}
+                   viewBox={`0 0 ${W} ${H}`} className="w-full touch-pan-x touch-pan-y select-none" tabIndex={0}
                    onMouseMove={(e) => pick(e.clientX, e.currentTarget.getBoundingClientRect())}
                    onPointerMove={(e) => pick(e.clientX, e.currentTarget.getBoundingClientRect())}
                    onClick={(e) => pick(e.clientX, e.currentTarget.getBoundingClientRect())}
