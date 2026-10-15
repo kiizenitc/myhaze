@@ -13,7 +13,7 @@ from datetime import datetime, timedelta, timezone
 
 from ..config import load_settings
 from ..http import FetchError, make_client
-from ..sources import aqicn, doe, openmeteo
+from ..sources import aqicn, doe, firms, openmeteo
 from ..store import Store
 
 DOE_PAUSE_S = 0.5
@@ -143,6 +143,17 @@ def archive_cams(client, store, now_utc: datetime) -> dict:
     return {"status": "ok" if written else "failed", "written": written, "slot": slot.isoformat()}
 
 
+def archive_fires(client, store, settings, now_utc: datetime) -> dict:
+    if not settings.firms_key:
+        return {"status": "skipped", "reason": "FIRMS_MAP_KEY not set"}
+    if now_utc.minute >= 15:
+        return {"status": "skipped", "reason": "fetched at the start of the hour"}
+    today = now_utc.astimezone(timezone.utc).date()
+    availability = firms.fetch_availability(client, settings.firms_key)
+    cells = firms.fetch_cells(client, settings.firms_key, today - timedelta(days=1), today, availability)
+    return {"status": "ok", "cells": store.upsert_fire_cells(cells)}
+
+
 def run(now_utc: datetime, settings, client, store, *, doe_backfill_days: int = 0) -> RunResult:
     started = datetime.now(timezone.utc)
     # aqicn first: its hourly readings can never be fetched again, while DOE keeps about 7 days.
@@ -151,6 +162,7 @@ def run(now_utc: datetime, settings, client, store, *, doe_backfill_days: int = 
         "aqicn": lambda: archive_aqicn(client, store, settings, now_utc),
         "doe": lambda: archive_doe(client, store, now_utc, doe_backfill_days),
         "cams": lambda: archive_cams(client, store, now_utc),
+        "fires": lambda: archive_fires(client, store, settings, now_utc),
     }
     details: dict[str, dict] = {}
     for name, step in steps.items():

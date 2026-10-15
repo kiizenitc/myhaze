@@ -1,12 +1,12 @@
 """Supabase Postgres access for the archive (direct connection through the session pooler)."""
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 
 import psycopg
 from psycopg.types.json import Jsonb
 
-from .rows import CamsForecast, Obs, Station
+from .rows import CamsForecast, FireCell, Obs, Station
 
 OBS_COLUMNS = ("station_id", "hour", "source", "api", "param_symbol", "pm25_aqi", "pm10_aqi",
                "o3_aqi", "no2_aqi", "so2_aqi", "co_aqi", "temp_c", "rh", "wind", "pressure")
@@ -102,3 +102,20 @@ class Store:
             "insert into run_log (job, started_at, finished_at, status, details) values (%s, %s, %s, %s, %s)",
             (job, started_at, finished_at, status, Jsonb(details)),
         )
+
+    def upsert_fire_cells(self, cells: list[FireCell]) -> int:
+        if cells:
+            with self.conn.transaction(), self.conn.cursor() as cur:
+                cur.executemany(
+                    "insert into fire_grid_daily (day, lat_bin, lon_bin, frp_sum, detections) values (%s, %s, %s, %s, %s) "
+                    "on conflict (day, lat_bin, lon_bin) do update set "
+                    "frp_sum = excluded.frp_sum, detections = excluded.detections",
+                    [(c.day, c.lat_bin, c.lon_bin, c.frp_sum, c.detections) for c in cells],
+                )
+        return len(cells)
+
+    def fire_cells(self, start: date, end: date) -> list[FireCell]:
+        rows = self.conn.execute(
+            "select day, lat_bin, lon_bin, frp_sum, detections from fire_grid_daily "
+            "where day between %s and %s order by day, lat_bin, lon_bin", (start, end)).fetchall()
+        return [FireCell(day, float(lat), float(lon), float(frp), int(n)) for day, lat, lon, frp, n in rows]

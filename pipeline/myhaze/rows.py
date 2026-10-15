@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 
 
 @dataclass(frozen=True)
@@ -41,3 +41,13 @@ class CamsForecast:
     issued_slot: datetime
     first_valid: datetime
     pm25: list[float | None]
+
+
+@dataclass(frozen=True)
+class FireCell:
+    """FIRMS fire radiative power summed over a 0.25° cell for one UTC day (bins = south-west corner)."""
+    day: date
+    lat_bin: float
+    lon_bin: float
+    frp_sum: float
+    detections: int

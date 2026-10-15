@@ -248,3 +248,33 @@ def test_main_reports_a_connection_failure_without_echoing_it(monkeypatch, capsy
     output = capsys.readouterr()
     assert "SECRETPW" not in output.out + output.err
     assert "RuntimeError" in output.err
+
+
+def test_fires_step_stores_cells_once_per_hour():
+    from tests.test_firms import AVAILABILITY, CSV
+
+    store = FakeStore(stations=[KANGAR], aqicn={"CA01R": 3001})
+    routes = dict(HEALTHY, **{"/data_availability/csv/FK/ALL": AVAILABILITY,
+                              "/v1/air-quality": fixtures.CAMS_TWO_STATIONS[0]})
+
+    def handler(request):
+        for suffix, reply in routes.items():
+            if request.url.path.endswith(suffix):
+                return httpx.Response(200, json=reply) if not isinstance(reply, str) else httpx.Response(200, text=reply)
+        if "/api/area/csv/FK/" in request.url.path:
+            return httpx.Response(200, text=CSV)
+        return httpx.Response(404)
+
+    settings = Settings("tok123", "postgresql://unused", "FK")
+    client = make_client(transport=httpx.MockTransport(handler))
+    result = archive.run(NOW, settings, client, store)
+    assert result.details["fires"]["status"] == "ok"
+    assert len(store.fire_cells_store) == 2
+
+    later = archive.archive_fires(client, store, settings, NOW.replace(minute=20))
+    assert later == {"status": "skipped", "reason": "fetched at the start of the hour"}
+
+
+def test_fires_step_is_skipped_without_a_key():
+    detail = archive.archive_fires(routed_client(HEALTHY, []), FakeStore(), SETTINGS, NOW)
+    assert detail == {"status": "skipped", "reason": "FIRMS_MAP_KEY not set"}

@@ -8,6 +8,7 @@ class FakeStore:
         self.obs = {}
         self.cams = {}
         self.runs = []
+        self.fire_cells_store = {}
 
     def upsert_stations(self, stations, aqicn=None):
         for station in stations:
@@ -51,3 +52,12 @@ class FakeStore:
 
     def log_run(self, job, started_at, finished_at, status, details):
         self.runs.append((job, status, details))
+
+    def upsert_fire_cells(self, cells):
+        for c in cells:
+            self.fire_cells_store[(c.day, c.lat_bin, c.lon_bin)] = c
+        return len(cells)
+
+    def fire_cells(self, start, end):
+        return sorted((c for c in self.fire_cells_store.values() if start <= c.day <= end),
+                      key=lambda c: (c.day, c.lat_bin, c.lon_bin))

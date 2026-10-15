@@ -80,3 +80,17 @@ def test_mapping_update_leaves_other_stations_alone(store):
         assert store.aqicn_uids().get(other) == 888888
     finally:
         store.conn.execute("delete from stations where station_id = %s", (other,))
+
+
+def test_fire_cells_roundtrip_and_upsert(store):
+    from datetime import date
+
+    from myhaze.rows import FireCell
+
+    day = date(1999, 1, 1)
+    try:
+        assert store.upsert_fire_cells([FireCell(day, -2.25, 113.75, 20.0, 2)]) == 1
+        store.upsert_fire_cells([FireCell(day, -2.25, 113.75, 25.5, 3)])
+        assert store.fire_cells(day, day) == [FireCell(day, -2.25, 113.75, 25.5, 3)]
+    finally:
+        store.conn.execute("delete from fire_grid_daily where day = %s", (day,))

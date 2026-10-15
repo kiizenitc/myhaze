@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 
 import httpx
 
+from ..geo import haversine_km  # noqa: F401  (re-exported for callers of aqicn.haversine_km)
 from ..http import FetchError, get_json
 from ..rows import Obs, Station
 
@@ -24,13 +25,6 @@ class AqicnStation:
     name: str
     lat: float
     lon: float
-
-
-def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    p1, p2 = math.radians(lat1), math.radians(lat2)
-    dp, dl = p2 - p1, math.radians(lon2 - lon1)
-    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
-    return 2 * 6371.0 * math.asin(math.sqrt(a))
 
 
 def _num(value) -> float | None:

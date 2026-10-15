@@ -58,3 +58,12 @@ def test_requests_carry_the_myhaze_user_agent():
 
     get_json(client_for(handler), "https://x.test/")
     assert seen["ua"].startswith("MYHaze/0.1")
+
+
+def test_get_text_returns_text_and_hides_secret_paths():
+    from myhaze.http import get_text
+
+    assert get_text(client_for(lambda r: httpx.Response(200, text="a,b\n1,2\n")), "https://x.test/") == "a,b\n1,2\n"
+    with pytest.raises(FetchError) as info:
+        get_text(client_for(lambda r: httpx.Response(503)), "https://x.test/api/SECRETKEY/x", label="FIRMS area")
+    assert str(info.value) == "FIRMS area failed after 3 attempts: HTTP 503"

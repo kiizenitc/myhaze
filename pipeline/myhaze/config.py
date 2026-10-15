@@ -15,6 +15,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 class Settings:
     aqicn_token: str | None
     db_url: str | None
+    firms_key: str | None = None
 
 
 def load_dotenv(path: Path) -> None:
@@ -36,4 +37,5 @@ def load_settings(env_file: Path | None = None) -> Settings:
     return Settings(
         aqicn_token=os.environ.get("AQICN_TOKEN") or None,
         db_url=os.environ.get("SUPABASE_DB_URL") or None,
+        firms_key=os.environ.get("FIRMS_MAP_KEY") or None,
     )

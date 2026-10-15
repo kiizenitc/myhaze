@@ -34,3 +34,4 @@ jobs:
           BACKFILL_DAYS: ${{ inputs.doe_backfill_days || '0' }}
           AQICN_TOKEN: ${{ secrets.AQICN_TOKEN }}
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          FIRMS_MAP_KEY: ${{ secrets.FIRMS_MAP_KEY }}
