@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, test, vi } from "vitest";
 
@@ -24,10 +24,10 @@ test("the time slider steps through the 48 hours in Malaysia time, with a band l
                    { status: 200 })));
   render(<MapView />);
   const slider = await screen.findByRole("slider", { name: "Time" });
-  expect(screen.getByText("Thu 15 Oct 10am")).toBeInTheDocument();
+  expect(screen.getByText("Now · Thu 15 Oct 10am")).toBeInTheDocument();
   fireEvent.change(slider, { target: { value: "14" } });
   expect(screen.getByTestId("map")).toHaveTextContent("hour 14");
-  expect(screen.getByText("Fri 16 Oct 12am")).toBeInTheDocument();
+  expect(screen.getByText("Forecast · Fri 16 Oct 12am")).toBeInTheDocument();
   expect(await screen.findByText("Wind lines are not available right now.")).toBeInTheDocument();
   expect(screen.getByText(/Data delayed/)).toBeInTheDocument(); // the fixture is hours old (the slider output is a status too)
   for (const word of ["Good", "Moderate", "Unhealthy", "Very unhealthy", "Hazardous"]) {
@@ -40,7 +40,8 @@ test("the wind can be paused, and the caption says what the lines are", async ()
     String(url).includes("wind.json") ? makeWind() : String(url).includes("map.json") ? makeMap()
       : { generated_at: GENERATED, cells: [] }), { status: 200 })));
   render(<MapView />);
-  expect(await screen.findByText(/Lines show the wind that carries the smoke/)).toBeInTheDocument();
+  expect(await screen.findByText("Lines show the wind that carries the smoke (about 120 m up) at Thu 15 Oct 10am."))
+    .toBeInTheDocument();
   expect(screen.getByTestId("map")).toHaveTextContent("animate true");
   await userEvent.click(screen.getByRole("button", { name: "Pause wind" }));
   expect(screen.getByTestId("map")).toHaveTextContent("animate false");
@@ -67,7 +68,7 @@ test("Play runs the 48 hours as a time-lapse and stops at the end; Stop or the s
     fireEvent.click(screen.getByRole("button", { name: "Play the 48-hour forecast" }));
     act(() => vi.advanceTimersByTime(1500)); // three steps of half a second
     expect(screen.getByTestId("map")).toHaveTextContent("hour 3");
-    expect(screen.getByText("Thu 15 Oct 1pm")).toBeInTheDocument();
+    expect(screen.getByText("Forecast · Thu 15 Oct 1pm")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Stop the time-lapse" }));
     act(() => vi.advanceTimersByTime(2000));
     expect(screen.getByTestId("map")).toHaveTextContent("hour 3");
@@ -86,4 +87,15 @@ test("Play runs the 48 hours as a time-lapse and stops at the end; Stop or the s
   } finally {
     vi.useRealTimers();
   }
+});
+
+test("the map says plainly that later hours are a forecast, with links to how it works and how accurate it is", async () => {
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => new Response(JSON.stringify(
+    String(url).includes("map.json") ? makeMap() : { generated_at: GENERATED, cells: [] }),
+    { status: String(url).includes("wind.json") ? 404 : 200 })));
+  render(<MapView />);
+  const note = await screen.findByRole("note");
+  expect(note).toHaveTextContent("Forecast, not a measurement");
+  expect(within(note).getByRole("link", { name: "How the forecast works" })).toHaveAttribute("href", "/about/#how");
+  expect(within(note).getByRole("link", { name: "How accurate it is" })).toHaveAttribute("href", "/accuracy/");
 });

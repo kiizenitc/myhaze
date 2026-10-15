@@ -44,10 +44,18 @@ export function MapView() {
   }
   const at = Math.min(hour, data.times.length - 1);
   const time = data.times[at];
+  const when = `${weekdayDate(dateMYT(time))} ${hourOfIso(time)}`;
   return (
     <section className="grid grid-cols-1 gap-3">
       <StaleBanner generatedAt={data.generated_at} />
       <h1 className="text-2xl font-semibold">Haze map</h1>
+      <aside role="note" className="rounded-xl border border-[var(--line)] bg-[var(--card)] p-3 text-sm">
+        <strong>Forecast, not a measurement.</strong> At &ldquo;Now&rdquo; the dots show the latest hourly readings
+        (estimated where a station has no hourly feed); every later hour is MYHaze&apos;s forecast and can be wrong.{" "}
+        <Link href="/about/#how" className="text-[var(--accent)] underline">How the forecast works</Link>
+        {" · "}
+        <Link href="/accuracy/" className="text-[var(--accent)] underline">How accurate it is</Link>
+      </aside>
       <p className="text-[var(--ink-2)]">
         Each dot is a DOE station showing its Real Feel number and band; tap one for its hour-by-hour forecast
         (crowded numbers appear as you zoom in). Small dark-red dots are fires seen by satellite on the latest
@@ -57,7 +65,7 @@ export function MapView() {
                onPick={(id) => router.push(`/station/?id=${id}`)} />
       <div className="flex items-center justify-between gap-3 text-sm">
         <p className="text-[var(--ink-2)]">
-          {wind ? "Lines show the wind that carries the smoke (about 120 m up)."
+          {wind ? `Lines show the wind that carries the smoke (about 120 m up) at ${when}.`
             : windError ? "Wind lines are not available right now." : ""}
         </p>
         {wind && (
@@ -71,7 +79,7 @@ export function MapView() {
         <div className="flex items-center justify-between gap-3">
           <p>
             <label htmlFor="map-hour" className="font-medium">Time</label>{" "}
-            <output htmlFor="map-hour">{`${weekdayDate(dateMYT(time))} ${hourOfIso(time)}`}</output>
+            <output htmlFor="map-hour">{`${at === 0 ? "Now" : "Forecast"} · ${when}`}</output>
           </p>
           <button type="button" aria-label={playing ? "Stop the time-lapse" : "Play the 48-hour forecast"}
                   onClick={() => {

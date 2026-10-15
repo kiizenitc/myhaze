@@ -8,6 +8,7 @@ const FADE = 0.92; // share of each trail kept from one frame to the next
 const MAX_PARTICLES = 3000;
 const PIXELS_PER_PARTICLE = 150;
 const MAX_DPR = 2; // sharper than this costs phones a lot of pixels for nothing visible
+const REFRESH_FRAMES = 20; // after the time changes, old trails give way to the new wind within ~1/3 s
 
 interface Particle {
   lon: number;
@@ -53,6 +54,9 @@ export class WindFlow {
 
   setField(grid: WindGrid, field: Field | null): void {
     const newGrid = grid !== this.grid;
+    if (!newGrid && field !== this.field) {
+      for (const p of this.particles) p.life = Math.min(p.life, p.age + REFRESH_FRAMES);
+    }
     this.grid = grid;
     this.field = field;
     if (newGrid) this.seed();

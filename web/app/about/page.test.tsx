@@ -14,3 +14,8 @@ test("explains both numbers and carries every credit and disclaimer", () => {
     expect(text).toContain(phrase);
   }
 });
+
+test("the forecast method has an anchor the map links to", () => {
+  render(<AboutPage />);
+  expect(screen.getByRole("heading", { name: "How the forecast works" })).toHaveAttribute("id", "how");
+});

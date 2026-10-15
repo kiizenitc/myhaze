@@ -26,7 +26,7 @@ export default function AboutPage() {
         MYHaze shows both of its numbers on Malaysia&apos;s API scale so they can be compared with DOE&apos;s.
       </p>
 
-      <h2 className={H2}>How the forecast works</h2>
+      <h2 id="how" className={H2}>How the forecast works</h2>
       <p>
         Every hour MYHaze combines the latest readings with fires seen by NASA satellites in Sumatra, Kalimantan and
         Malaysia, the forecast wind that carries their smoke, forecast rain that washes it out, how well the air mixes
