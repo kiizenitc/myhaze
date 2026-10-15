@@ -13,7 +13,9 @@ class FakeStore:
         for station in stations:
             self._stations[station.station_id] = station
         if aqicn is not None:
-            self._aqicn = {station_id: uid for station_id, (uid, _km) in aqicn.items()}
+            for station in stations:
+                self._aqicn.pop(station.station_id, None)
+            self._aqicn.update({station_id: uid for station_id, (uid, _km) in aqicn.items()})
         return len(stations)
 
     def stations(self):

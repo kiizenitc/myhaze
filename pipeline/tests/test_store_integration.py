@@ -70,3 +70,13 @@ def test_every_table_has_row_level_security(store):
         "select relname, relrowsecurity from pg_class "
         "where relnamespace = 'public'::regnamespace and relkind = 'r'").fetchall()
     assert rows and all(enabled for _, enabled in rows), rows
+
+
+def test_mapping_update_leaves_other_stations_alone(store):
+    other = "ZZTES2"
+    store.upsert_stations([Station(other, "Other test station", "Nowhere", 0.0, 0.0)], {other: (888888, 0.5)})
+    try:
+        store.upsert_stations([Station(TEST_ID, "Test station", "Nowhere", 0.0, 0.0)], {TEST_ID: (999999, 1.25)})
+        assert store.aqicn_uids().get(other) == 888888
+    finally:
+        store.conn.execute("delete from stations where station_id = %s", (other,))

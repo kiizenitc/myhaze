@@ -40,7 +40,9 @@ class Store:
                 [(s.station_id, s.name, s.state, s.lat, s.lon) for s in stations],
             )
             if aqicn is not None:
-                cur.execute("update stations set aqicn_uid = null, aqicn_km = null")
+                # Reset only the stations being synced, so a partial call never unlinks the rest.
+                cur.execute("update stations set aqicn_uid = null, aqicn_km = null where station_id = any(%s)",
+                            ([s.station_id for s in stations],))
                 cur.executemany(
                     "update stations set aqicn_uid = %s, aqicn_km = %s where station_id = %s",
                     [(uid, km, station_id) for station_id, (uid, km) in aqicn.items()],
