@@ -153,3 +153,15 @@ def test_cams_daily_and_latest_cams(store):
         assert store.max_day("cams_daily") is not None
     finally:
         store.conn.execute("delete from cams_daily where station_id = %s", (TEST_ID,))
+
+
+def test_model_versions_roundtrip(store):
+    try:
+        store.save_model_version("ZZ0001", {1: "model", 2: "persistence"}, {"note": "test"},
+                                 {1: {0.1: "low-text", 0.5: "mid-text", 0.9: "high-text"}, 2: {}})
+        methods, report, boosters = store.load_model("ZZ0001")
+        assert methods == {1: "model", 2: "persistence"} and report == {"note": "test"}
+        assert boosters == {1: {0.1: "low-text", 0.5: "mid-text", 0.9: "high-text"}}
+        assert store.load_model("ZZ-missing") is None
+    finally:
+        store.conn.execute("delete from model_versions where version like 'ZZ%'")

@@ -225,3 +225,32 @@ class Store:
         if table not in self._DAY_TABLES:
             raise ValueError(f"unsupported table {table!r}")
         return self.conn.execute(f"select max(day) from {table}").fetchone()[0]
+
+    def save_model_version(self, version: str, methods: dict[int, str], report: dict,
+                           boosters: dict[int, dict[float, str]]) -> None:
+        with self.conn.transaction(), self.conn.cursor() as cur:
+            cur.execute("insert into model_versions (version, methods, report) values (%s, %s, %s)",
+                        (version, Jsonb({str(k): v for k, v in methods.items()}), Jsonb(report)))
+            rows = [(version, lead, q, text) for lead, by_q in boosters.items() for q, text in by_q.items()]
+            if rows:
+                cur.executemany("insert into model_boosters (version, lead_days, quantile, booster) "
+                                "values (%s, %s, %s, %s)", rows)
+
+    def load_model(self, version: str) -> tuple[dict[int, str], dict, dict[int, dict[float, str]]] | None:
+        head = self.conn.execute("select methods, report from model_versions where version = %s",
+                                 (version,)).fetchone()
+        if head is None:
+            return None
+        boosters: dict[int, dict[float, str]] = {}
+        for lead, q, text in self.conn.execute(
+                "select lead_days, quantile, booster from model_boosters where version = %s", (version,)).fetchall():
+            boosters.setdefault(int(lead), {})[float(q)] = text
+        return {int(k): v for k, v in head[0].items()}, head[1], boosters
+
+    def latest_model_version(self) -> str | None:
+        row = self.conn.execute("select version from model_versions order by created_at desc limit 1").fetchone()
+        return row[0] if row else None
+
+    def prune_models(self, keep: int = 4) -> None:
+        self.conn.execute("delete from model_versions where version not in "
+                          "(select version from model_versions order by created_at desc limit %s)", (keep,))
