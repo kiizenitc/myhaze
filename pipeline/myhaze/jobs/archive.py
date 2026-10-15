@@ -22,6 +22,8 @@ DOE_UP_TO_DATE_SHARE = 0.9
 DOE_BUDGET_S = 150.0
 AQICN_BUDGET_S = 300.0
 AQICN_MAPPING_MIN_SHARE = 0.8
+# aqicn hours can never be re-fetched, so a feed that stops advancing must alert the owner.
+AQICN_STALE_AFTER = timedelta(hours=2)
 
 
 @dataclass
@@ -87,6 +89,8 @@ def archive_doe(client, store, now_utc: datetime, backfill_days: int = 0, *,
     if not rows and not errors:
         errors.append("DOE returned no readings")
     written, unknown = store.upsert_obs(list(rows.values())) if rows else (0, 0)
+    if rows and not written:
+        errors.append("no DOE reading matched a known station")
     status = "ok" if not errors else ("partial" if written else "failed")
     return {"status": status, "written": written, "unknown_station": unknown,
             "errors": errors[:5], "error_count": len(errors)}
@@ -98,13 +102,13 @@ def archive_aqicn(client, store, settings, now_utc: datetime, *,
         return {"status": "skipped", "reason": "AQICN_TOKEN not set"}
     uids = store.aqicn_uids()
     if not uids:
-        return {"status": "skipped", "reason": "no stations matched to aqicn yet"}
+        return {"status": "failed", "errors": ["no stations matched to aqicn"]}
     hour = _hour(now_utc)
     latest = store.latest_hours("aqicn")
     todo = {station_id: uid for station_id, uid in uids.items() if latest.get(station_id) != hour}
     if not todo:
         return {"status": "skipped", "reason": "hour already stored"}
-    rows, errors = [], []
+    rows, errors, no_reading = [], [], 0
     started = clock()
     for station_id, uid in sorted(todo.items()):
         if clock() - started > budget_s:
@@ -112,14 +116,22 @@ def archive_aqicn(client, store, settings, now_utc: datetime, *,
             break
         try:
             obs = aqicn.fetch_feed(client, settings.aqicn_token, uid, station_id)
-        except FetchError as exc:
-            errors.append(f"{station_id}: {exc}")
+        except Exception as exc:
+            errors.append(f"{station_id}: {_safe_message(exc)}")
             continue
-        if obs is not None:
+        if obs is None:
+            no_reading += 1
+        else:
             rows.append(obs)
     written, _unknown = store.upsert_obs(rows) if rows else (0, 0)
-    status = "ok" if not errors else ("partial" if len(errors) < len(todo) else "failed")
-    return {"status": status, "written": written, "requested": len(todo),
+    freshest = max(store.latest_hours("aqicn").values(), default=None)
+    stale = freshest is None or freshest < hour - AQICN_STALE_AFTER
+    if not written:
+        errors.append("no aqicn readings were saved")
+    elif stale:
+        errors.append(f"newest aqicn reading is from {freshest.isoformat() if freshest else 'over 2 days ago'}")
+    status = "failed" if not written or stale else ("partial" if errors or no_reading else "ok")
+    return {"status": status, "written": written, "requested": len(todo), "no_reading": no_reading,
             "errors": errors[:5], "error_count": len(errors)}
 
 
@@ -146,8 +158,8 @@ def run(now_utc: datetime, settings, client, store, *, doe_backfill_days: int = 
             details[name] = step()
         except Exception as exc:
             details[name] = _failure(exc)
-    if details["doe"]["status"] == "failed" and details["aqicn"]["status"] == "failed":
-        status = "failed"
+    if details["aqicn"]["status"] == "failed":
+        status = "failed"  # irreplaceable data is being lost: exit non-zero so GitHub emails the owner
     elif any(d["status"] in ("failed", "partial") for d in details.values()):
         status = "partial"
     else:

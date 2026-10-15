@@ -1,3 +1,4 @@
+import copy
 from datetime import datetime, timezone
 
 import httpx
@@ -76,17 +77,26 @@ def test_one_failing_aqicn_station_does_not_block_the_others():
     assert result.status == "partial"
 
 
-def test_run_fails_only_when_doe_and_aqicn_are_both_down():
+def test_run_fails_when_aqicn_fails_even_if_doe_is_fine():
     store = FakeStore(stations=[KANGAR], aqicn={"CA01R": 3001})
-    routes = {"statelist": 503, "/feed/@3001/": 503, "/v1/air-quality": fixtures.CAMS_TWO_STATIONS[0]}
+    routes = dict(HEALTHY, **{"/feed/@3001/": 503, "/v1/air-quality": fixtures.CAMS_TWO_STATIONS[0]})
 
     result = archive.run(NOW.replace(minute=30), SETTINGS, routed_client(routes, []), store)
 
-    assert result.details["doe"]["status"] == "failed"
+    assert result.details["doe"]["status"] == "ok"
     assert result.details["aqicn"]["status"] == "failed"
     assert result.details["cams"]["status"] == "ok"
     assert result.status == "failed"
     assert store.runs[-1][1] == "failed"
+
+
+def test_doe_failing_alone_leaves_the_run_partial():
+    store = FakeStore(stations=[KANGAR], aqicn={"CA01R": 3001})
+    routes = dict(HEALTHY, **{"statelist": 503, "/v1/air-quality": fixtures.CAMS_TWO_STATIONS[0]})
+
+    result = archive.run(NOW.replace(minute=30), SETTINGS, routed_client(routes, []), store)
+
+    assert (result.details["doe"]["status"], result.status) == ("failed", "partial")
 
 
 def test_doe_backfill_requests_one_window_per_day():
@@ -193,3 +203,34 @@ def test_aqicn_stops_when_its_time_budget_runs_out_but_keeps_what_it_got():
     assert detail["written"] == 2
     assert detail["status"] == "partial"
     assert any("time budget" in e for e in detail["errors"])
+
+
+def test_aqicn_returning_no_readings_fails_the_run():
+    store = FakeStore(stations=[KANGAR], aqicn={"CA01R": 4004})
+    routes = dict(HEALTHY, **{"/feed/@4004/": fixtures.AQICN_FEED_OFFLINE,
+                              "/v1/air-quality": fixtures.CAMS_TWO_STATIONS[0]})
+
+    result = archive.run(NOW.replace(minute=30), SETTINGS, routed_client(routes, []), store)
+
+    assert result.details["aqicn"]["status"] == "failed"
+    assert result.status == "failed"
+
+
+def test_a_feed_stuck_on_an_old_hour_is_a_failure():
+    stuck = copy.deepcopy(fixtures.AQICN_FEED_KANGAR)
+    stuck["data"]["time"]["iso"] = "2026-10-15T05:00:00+08:00"  # three hours before NOW
+    store = FakeStore(stations=[KANGAR], aqicn={"CA01R": 3001})
+
+    detail = archive.archive_aqicn(routed_client({"/feed/@3001/": stuck}, []), store, SETTINGS, NOW)
+
+    assert (detail["written"], detail["status"]) == (1, "failed")
+
+
+def test_aqicn_without_any_matched_station_is_a_failure():
+    detail = archive.archive_aqicn(routed_client(HEALTHY, []), FakeStore(stations=[KANGAR]), SETTINGS, NOW)
+    assert detail["status"] == "failed"
+
+
+def test_doe_readings_only_for_unknown_stations_is_a_failure():
+    detail = archive.archive_doe(routed_client(HEALTHY, []), FakeStore(stations=[IPOH]), NOW)
+    assert (detail["written"], detail["status"]) == (0, "failed")
