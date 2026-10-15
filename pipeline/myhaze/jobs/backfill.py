@@ -6,9 +6,11 @@ import sys
 from datetime import date, datetime, timedelta
 
 from ..config import MYT, load_settings
+from ..daily import daily_means
 from ..http import make_client
-from ..sources import firms
+from ..sources import firms, openmeteo
 from ..store import Store
+from ..weather import RAIN_POINTS, daily_weather
 
 HISTORY_START = date(2026, 7, 1)
 
@@ -27,7 +29,23 @@ def backfill_fires(client, store, settings, start: date, end: date) -> dict:
     return {"cells": written}
 
 
-BACKFILLS = {"fires": backfill_fires}
+def backfill_weather(client, store, settings, start: date, end: date) -> dict:
+    points = store.stations() + list(RAIN_POINTS)
+    rows = []
+    for lead in (1, 2):
+        for hw in openmeteo.fetch_previous_runs(client, points, start, end, lead):
+            rows += [(hw.station_id, day, lead, wd) for day, wd in daily_weather(hw).items() if start <= day <= end]
+    return {"weather_rows": store.upsert_weather_daily(rows)}
+
+
+def backfill_cams(client, store, settings, start: date, end: date) -> dict:
+    series = openmeteo.fetch_cams_hourly_history(client, store.stations(), start, end)
+    rows = [(sid, day, round(value, 2)) for sid, hourly in series.items()
+            for day, value in daily_means(hourly).items() if start <= day <= end]
+    return {"cams_rows": store.upsert_cams_daily(rows)}
+
+
+BACKFILLS = {"fires": backfill_fires, "weather": backfill_weather, "cams": backfill_cams}
 
 
 def main(argv: list[str] | None = None) -> int:

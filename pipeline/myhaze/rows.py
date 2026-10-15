@@ -51,3 +51,16 @@ class FireCell:
     lon_bin: float
     frp_sum: float
     detections: int
+
+
+@dataclass(frozen=True)
+class HourlyWeather:
+    """Hourly weather at a point. `times` are UTC hours; any value may be None."""
+    station_id: str
+    times: list[datetime]
+    precip: list[float | None]
+    blh: list[float | None]
+    wind10: list[float | None]
+    wind120: list[float | None]
+    wind120_from: list[float | None]
+    rh: list[float | None]

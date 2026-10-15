@@ -6,7 +6,8 @@ from datetime import date, datetime
 import psycopg
 from psycopg.types.json import Jsonb
 
-from .rows import CamsForecast, FireCell, Obs, Station
+from .rows import CamsForecast, FireCell, HourlyWeather, Obs, Station
+from .weather import WeatherDay
 
 OBS_COLUMNS = ("station_id", "hour", "source", "api", "param_symbol", "pm25_aqi", "pm10_aqi",
                "o3_aqi", "no2_aqi", "so2_aqi", "co_aqi", "temp_c", "rh", "wind", "pressure")
@@ -153,3 +154,74 @@ class Store:
             "where day between %s and %s order by station_id, day, (source = 'archive') desc",
             (start, end)).fetchall()
         return {(station_id, day): float(value) for station_id, day, value in rows}
+
+    _DAY_TABLES = {"weather_daily", "cams_daily", "daily_pm25", "fire_grid_daily"}
+
+    def upsert_weather_daily(self, rows: list[tuple[str, date, int, WeatherDay]]) -> int:
+        if rows:
+            with self.conn.transaction(), self.conn.cursor() as cur:
+                cur.executemany(
+                    "insert into weather_daily (station_id, day, lead_days, precip_mm, wet_hours, wind10_kmh, "
+                    "wind120_kmh, wind120_from_deg, rh_mean) values (%s, %s, %s, %s, %s, %s, %s, %s, %s) "
+                    "on conflict (station_id, day, lead_days) do update set precip_mm = excluded.precip_mm, "
+                    "wet_hours = excluded.wet_hours, wind10_kmh = excluded.wind10_kmh, "
+                    "wind120_kmh = excluded.wind120_kmh, wind120_from_deg = excluded.wind120_from_deg, "
+                    "rh_mean = excluded.rh_mean",
+                    [(sid, day, lead, w.precip_mm, w.wet_hours, w.wind10_kmh, w.wind120_kmh, w.wind120_from_deg,
+                      w.rh_mean) for sid, day, lead, w in rows])
+        return len(rows)
+
+    def weather_daily(self, start: date, end: date) -> dict[tuple[str, date, int], WeatherDay]:
+        rows = self.conn.execute(
+            "select station_id, day, lead_days, precip_mm, wet_hours, wind10_kmh, wind120_kmh, wind120_from_deg, "
+            "rh_mean from weather_daily where day between %s and %s", (start, end)).fetchall()
+        return {(sid, day, int(lead)): WeatherDay(*(None if v is None else (int(v) if i == 1 else float(v))
+                                                     for i, v in enumerate(values)))
+                for sid, day, lead, *values in rows}
+
+    def save_weather_latest(self, items: list[HourlyWeather], issued_at: datetime) -> int:
+        if items:
+            with self.conn.transaction(), self.conn.cursor() as cur:
+                cur.executemany(
+                    "insert into weather_latest (station_id, issued_at, times, precip, blh, wind10, wind120, "
+                    "wind120_from, rh) values (%s, %s, %s, %s, %s, %s, %s, %s, %s) on conflict (station_id) do update "
+                    "set issued_at = excluded.issued_at, times = excluded.times, precip = excluded.precip, "
+                    "blh = excluded.blh, wind10 = excluded.wind10, wind120 = excluded.wind120, "
+                    "wind120_from = excluded.wind120_from, rh = excluded.rh",
+                    [(w.station_id, issued_at, w.times, w.precip, w.blh, w.wind10, w.wind120, w.wind120_from, w.rh)
+                     for w in items])
+        return len(items)
+
+    def weather_latest(self) -> tuple[datetime | None, dict[str, HourlyWeather]]:
+        rows = self.conn.execute(
+            "select station_id, issued_at, times, precip, blh, wind10, wind120, wind120_from, rh from weather_latest"
+        ).fetchall()
+        latest = {sid: HourlyWeather(sid, list(times), *[list(col) for col in cols])
+                  for sid, _issued, times, *cols in rows}
+        issued = min((r[1] for r in rows), default=None)
+        return issued, latest
+
+    def upsert_cams_daily(self, rows: list[tuple[str, date, float]]) -> int:
+        known = self._known_ids()
+        keep = [r for r in rows if r[0] in known]
+        if keep:
+            with self.conn.transaction(), self.conn.cursor() as cur:
+                cur.executemany("insert into cams_daily (station_id, day, pm25_ugm3) values (%s, %s, %s) "
+                                "on conflict (station_id, day) do update set pm25_ugm3 = excluded.pm25_ugm3", keep)
+        return len(keep)
+
+    def cams_daily(self, start: date, end: date) -> dict[tuple[str, date], float]:
+        rows = self.conn.execute("select station_id, day, pm25_ugm3 from cams_daily where day between %s and %s",
+                                 (start, end)).fetchall()
+        return {(sid, day): float(v) for sid, day, v in rows}
+
+    def latest_cams(self) -> dict[str, CamsForecast]:
+        rows = self.conn.execute(
+            "select distinct on (station_id) station_id, issued_slot, first_valid, pm25 from cams_fcst "
+            "order by station_id, issued_slot desc").fetchall()
+        return {sid: CamsForecast(sid, slot, first, list(values)) for sid, slot, first, values in rows}
+
+    def max_day(self, table: str) -> date | None:
+        if table not in self._DAY_TABLES:
+            raise ValueError(f"unsupported table {table!r}")
+        return self.conn.execute(f"select max(day) from {table}").fetchone()[0]

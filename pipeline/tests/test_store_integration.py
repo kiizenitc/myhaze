@@ -21,7 +21,7 @@ def store():
     apply_migrations(s.conn)
     s.upsert_stations([Station(TEST_ID, "Test station", "Nowhere", 0.0, 0.0)])
     yield s
-    for table in ("obs_hourly", "cams_fcst", "daily_pm25", "stations"):
+    for table in ("obs_hourly", "cams_fcst", "daily_pm25", "cams_daily", "stations"):
         s.conn.execute(f"delete from {table} where station_id = %s", (TEST_ID,))
     s.conn.execute("delete from run_log where job = 'test'")
     s.close()
@@ -117,3 +117,39 @@ def test_daily_pm25_prefers_archive_over_csv(store):
         assert got[(TEST_ID, day)] == 42.5 and got[(TEST_ID, date(1999, 1, 3))] == 50.0
     finally:
         store.conn.execute("delete from daily_pm25 where station_id = %s", (TEST_ID,))
+
+
+def test_weather_tables_roundtrip(store):
+    from datetime import date
+
+    from myhaze.rows import HourlyWeather
+    from myhaze.weather import WeatherDay
+
+    day = date(1999, 1, 4)
+    wd = WeatherDay(2.5, 3, 4.0, 12.0, 225.0, 80.0)
+    hour = datetime(1999, 1, 4, tzinfo=timezone.utc)
+    hw = HourlyWeather("ZZTEST", [hour, hour + timedelta(hours=1)], [0.0, None], [300.0, 250.0], [1.0, 2.0],
+                       [5.0, 6.0], [200.0, 210.0], [70.0, 75.0])
+    try:
+        store.upsert_weather_daily([("ZZTEST", day, 1, wd)])
+        assert store.weather_daily(day, day) == {("ZZTEST", day, 1): wd}
+        store.save_weather_latest([hw], hour)
+        issued, latest = store.weather_latest()
+        assert issued == hour and latest["ZZTEST"] == hw
+    finally:
+        store.conn.execute("delete from weather_daily where station_id = 'ZZTEST'")
+        store.conn.execute("delete from weather_latest where station_id = 'ZZTEST'")
+
+
+def test_cams_daily_and_latest_cams(store):
+    from datetime import date
+
+    store.upsert_cams_daily([(TEST_ID, date(1999, 1, 5), 33.3), ("NOPE1", date(1999, 1, 5), 1.0)])
+    slot = datetime(1999, 1, 5, 6, tzinfo=timezone.utc)
+    store.upsert_cams([CamsForecast(TEST_ID, slot, slot, [10.0, 11.0])])
+    try:
+        assert store.cams_daily(date(1999, 1, 5), date(1999, 1, 5)) == {(TEST_ID, date(1999, 1, 5)): pytest.approx(33.3)}
+        assert store.latest_cams()[TEST_ID].pm25 == [10.0, 11.0]
+        assert store.max_day("cams_daily") is not None
+    finally:
+        store.conn.execute("delete from cams_daily where station_id = %s", (TEST_ID,))

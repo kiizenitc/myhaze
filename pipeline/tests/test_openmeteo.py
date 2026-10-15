@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 import httpx
 import pytest
@@ -62,3 +62,50 @@ def test_parse_cams_turns_unreadable_values_into_gaps():
 def test_parse_cams_skips_locations_with_unreadable_shapes():
     payload = [{"hourly": {"time": [123], "pm2_5": [1.0]}}, "junk"]
     assert openmeteo.parse_cams(payload, STATIONS, SLOT) == []
+
+
+WEATHER_TWO = [
+    {"hourly": {"time": ["2026-10-15T00:00", "2026-10-15T01:00"],
+                "precipitation_previous_day1": [0.0, 1.2], "wind_speed_10m_previous_day1": [5.0, 6.0],
+                "wind_speed_120m_previous_day1": [12.0, 14.0], "wind_direction_120m_previous_day1": [200, 210],
+                "relative_humidity_2m_previous_day1": [80, 85]}},
+    {"hourly": {"time": ["2026-10-15T00:00", "2026-10-15T01:00"],
+                "precipitation_previous_day1": [None, 0.0], "wind_speed_10m_previous_day1": [3.0, 3.0],
+                "wind_speed_120m_previous_day1": [9.0, 9.0], "wind_direction_120m_previous_day1": [90, 95],
+                "relative_humidity_2m_previous_day1": [70, 72]}},
+]
+
+
+def test_parse_weather_reads_suffixed_columns_and_marks_missing_ones():
+    got = openmeteo.parse_weather(WEATHER_TWO, STATIONS, "_previous_day1")
+    assert got[0].times[1] == datetime(2026, 10, 15, 1, tzinfo=timezone.utc)
+    assert (got[0].precip, got[0].wind120_from, got[1].precip) == ([0.0, 1.2], [200.0, 210.0], [None, 0.0])
+    assert got[0].blh == [None, None]
+
+
+def test_parse_weather_rejects_a_location_count_mismatch():
+    with pytest.raises(FetchError):
+        openmeteo.parse_weather(WEATHER_TWO, STATIONS[:1])
+
+
+def test_fetch_previous_runs_asks_for_the_lead_suffix_and_dates():
+    seen = []
+
+    def handler(request):
+        seen.append(dict(request.url.params))
+        return httpx.Response(200, json=WEATHER_TWO)
+
+    got = openmeteo.fetch_previous_runs(make_client(transport=httpx.MockTransport(handler)), STATIONS,
+                                        date(2026, 7, 1), date(2026, 7, 3), lead=1)
+    assert len(got) == 2
+    assert "wind_direction_120m_previous_day1" in seen[0]["hourly"].split(",")
+    assert (seen[0]["start_date"], seen[0]["end_date"]) == ("2026-06-30", "2026-07-03")
+
+
+def test_fetch_cams_hourly_history_returns_series_per_station():
+    def handler(request):
+        return httpx.Response(200, json=fixtures.CAMS_TWO_STATIONS)
+
+    got = openmeteo.fetch_cams_hourly_history(make_client(transport=httpx.MockTransport(handler)), STATIONS,
+                                              date(2026, 10, 15), date(2026, 10, 15))
+    assert got["CA01R"] == {SLOT: 20.1, SLOT.replace(hour=2): 22.5}
