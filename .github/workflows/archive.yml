@@ -1,0 +1,36 @@
+name: archive
+
+on:
+  schedule:
+    - cron: "5,20,35,50 * * * *"
+  workflow_dispatch:
+    inputs:
+      doe_backfill_days:
+        description: "Also fetch DOE's previous N days (DOE keeps about 7)"
+        default: "0"
+
+concurrency:
+  group: archive
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: pipeline/uv.lock
+      - name: Install
+        run: uv --directory pipeline sync --frozen
+      - name: Archive
+        run: uv --directory pipeline run python -m myhaze.jobs.archive --doe-backfill-days "$BACKFILL_DAYS"
+        env:
+          BACKFILL_DAYS: ${{ inputs.doe_backfill_days || '0' }}
+          AQICN_TOKEN: ${{ secrets.AQICN_TOKEN }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
