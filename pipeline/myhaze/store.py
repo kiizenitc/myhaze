@@ -136,3 +136,20 @@ class Store:
         for station_id, hour, value in self.conn.execute(sql, params).fetchall():
             series.setdefault(station_id, {})[hour] = float(value)
         return series
+
+    def upsert_daily_pm25(self, rows: list[tuple[str, date, float, str]]) -> int:
+        known = self._known_ids()
+        keep = [r for r in rows if r[0] in known]
+        if keep:
+            with self.conn.transaction(), self.conn.cursor() as cur:
+                cur.executemany(
+                    "insert into daily_pm25 (station_id, day, pm25_ugm3, source) values (%s, %s, %s, %s) "
+                    "on conflict (station_id, day, source) do update set pm25_ugm3 = excluded.pm25_ugm3", keep)
+        return len(keep)
+
+    def daily_pm25(self, start: date, end: date) -> dict[tuple[str, date], float]:
+        rows = self.conn.execute(
+            "select distinct on (station_id, day) station_id, day, pm25_ugm3 from daily_pm25 "
+            "where day between %s and %s order by station_id, day, (source = 'archive') desc",
+            (start, end)).fetchall()
+        return {(station_id, day): float(value) for station_id, day, value in rows}

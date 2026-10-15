@@ -21,7 +21,7 @@ def store():
     apply_migrations(s.conn)
     s.upsert_stations([Station(TEST_ID, "Test station", "Nowhere", 0.0, 0.0)])
     yield s
-    for table in ("obs_hourly", "cams_fcst", "stations"):
+    for table in ("obs_hourly", "cams_fcst", "daily_pm25", "stations"):
         s.conn.execute(f"delete from {table} where station_id = %s", (TEST_ID,))
     s.conn.execute("delete from run_log where job = 'test'")
     s.close()
@@ -104,3 +104,16 @@ def test_hourly_series_filters_by_source_and_symbol(store):
     since = recent - timedelta(hours=5)
     assert store.hourly_series("doe", "api", since, param_symbol="**")[TEST_ID] == {recent: 120.0}
     assert store.hourly_series("aqicn", "pm25_aqi", since)[TEST_ID] == {recent: 150.0}
+
+
+def test_daily_pm25_prefers_archive_over_csv(store):
+    from datetime import date
+
+    day = date(1999, 1, 2)
+    store.upsert_daily_pm25([(TEST_ID, day, 40.0, "aqicn_csv"), (TEST_ID, day, 42.5, "archive"),
+                             (TEST_ID, date(1999, 1, 3), 50.0, "aqicn_csv")])
+    try:
+        got = store.daily_pm25(day, date(1999, 1, 3))
+        assert got[(TEST_ID, day)] == 42.5 and got[(TEST_ID, date(1999, 1, 3))] == 50.0
+    finally:
+        store.conn.execute("delete from daily_pm25 where station_id = %s", (TEST_ID,))
