@@ -6,6 +6,7 @@ from datetime import date, datetime
 import psycopg
 from psycopg.types.json import Jsonb
 
+from .config import MYT
 from .rows import CamsForecast, FireCell, HourlyWeather, Obs, Station
 from .weather import WeatherDay
 
@@ -254,3 +255,57 @@ class Store:
     def prune_models(self, keep: int = 4) -> None:
         self.conn.execute("delete from model_versions where version not in "
                           "(select version from model_versions order by created_at desc limit %s)", (keep,))
+
+    def latest_obs(self, source: str, column: str, since: datetime) -> dict[str, tuple[datetime, float]]:
+        if column not in self._SERIES_COLUMNS:
+            raise ValueError(f"unsupported column {column!r}")
+        rows = self.conn.execute(
+            f"select distinct on (station_id) station_id, hour, {column} from obs_hourly "
+            f"where source = %s and hour >= %s and {column} is not null order by station_id, hour desc",
+            (source, since)).fetchall()
+        return {sid: (hour, float(value)) for sid, hour, value in rows}
+
+    def doe_daily_max(self, start: date) -> dict[tuple[str, date], float]:
+        since = datetime.combine(start, datetime.min.time(), MYT)
+        rows = self.conn.execute(
+            "select station_id, (hour at time zone 'Asia/Kuala_Lumpur')::date as day, max(api) from obs_hourly "
+            "where source = 'doe' and hour >= %s and api is not null group by 1, 2", (since,)).fetchall()
+        return {(sid, day): float(value) for sid, day, value in rows}
+
+    def save_forecast_runs(self, run_at: datetime, rows: list[tuple[str, str, datetime, list, list]]) -> int:
+        known = self._known_ids()
+        keep = [r for r in rows if r[0] in known]
+        if keep:
+            with self.conn.transaction(), self.conn.cursor() as cur:
+                cur.executemany(
+                    "insert into forecast_runs (run_at, station_id, method, first_valid, pm25, official_api) "
+                    "values (%s, %s, %s, %s, %s, %s) on conflict (run_at, station_id) do update set "
+                    "method = excluded.method, first_valid = excluded.first_valid, pm25 = excluded.pm25, "
+                    "official_api = excluded.official_api", [(run_at, *r) for r in keep])
+        return len(keep)
+
+    def forecast_runs(self, since: datetime) -> list[tuple[datetime, str, datetime, list[float]]]:
+        rows = self.conn.execute("select run_at, station_id, first_valid, pm25 from forecast_runs where run_at >= %s",
+                                 (since,)).fetchall()
+        return [(run_at, sid, first, list(values)) for run_at, sid, first, values in rows]
+
+    def upsert_verification(self, rows: list[tuple[date, str, int, int, int, int]]) -> int:
+        if rows:
+            with self.conn.transaction(), self.conn.cursor() as cur:
+                cur.executemany(
+                    "insert into verification_daily (day, horizon, hours, band_hits, bad_hours, bad_caught) "
+                    "values (%s, %s, %s, %s, %s, %s) on conflict (day, horizon) do update set hours = excluded.hours, "
+                    "band_hits = excluded.band_hits, bad_hours = excluded.bad_hours, bad_caught = excluded.bad_caught",
+                    rows)
+        return len(rows)
+
+    def verification_summary(self, days: int = 30) -> dict:
+        rows = self.conn.execute(
+            "select horizon, count(*), sum(hours), sum(band_hits), sum(bad_hours), sum(bad_caught) "
+            "from verification_daily where day >= current_date - %s group by horizon", (days,)).fetchall()
+        summary = {}
+        for horizon, n_days, hours, hits, bad, caught in rows:
+            summary[horizon] = {"days": int(n_days), "hours": int(hours),
+                                "band_accuracy": round(hits / hours, 4) if hours else None,
+                                "unhealthy_hours": int(bad), "pod_unhealthy": round(caught / bad, 4) if bad else None}
+        return summary

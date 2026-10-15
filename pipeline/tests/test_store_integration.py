@@ -165,3 +165,22 @@ def test_model_versions_roundtrip(store):
         assert store.load_model("ZZ-missing") is None
     finally:
         store.conn.execute("delete from model_versions where version like 'ZZ%'")
+
+
+def test_forecast_runs_latest_obs_and_doe_daily_max(store):
+    from datetime import date
+
+    hour = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0) - timedelta(hours=1)
+    store.upsert_obs([Obs(TEST_ID, hour, "doe", api=161, param_symbol="**")])
+    try:
+        assert store.latest_obs("doe", "api", hour - timedelta(hours=2))[TEST_ID] == (hour, 161.0)
+        local_day = (hour + timedelta(hours=8)).date()
+        assert store.doe_daily_max(local_day - timedelta(days=1))[(TEST_ID, local_day)] == 161.0
+        store.save_forecast_runs(hour, [(TEST_ID, "model", hour, [50.0, 51.0], [120.0, 121.0])])
+        assert (hour, TEST_ID, hour, [50.0, 51.0]) in store.forecast_runs(hour - timedelta(hours=1))
+        store.upsert_verification([(date(1999, 1, 6), "1-24h", 10, 9, 4, 4)])
+        summary = store.verification_summary(days=100000)
+        assert summary["1-24h"]["hours"] >= 10
+    finally:
+        store.conn.execute("delete from forecast_runs where station_id = %s", (TEST_ID,))
+        store.conn.execute("delete from verification_daily where day = %s", (date(1999, 1, 6),))
