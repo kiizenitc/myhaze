@@ -45,3 +45,7 @@ export function isStale(iso: string, now: number = Date.now(), maxHours = 2): bo
 export function percent(value: number | null | undefined): string {
   return value === null || value === undefined ? "–" : `${Math.round(value * 100)}%`;
 }
+
+export function dateMYT(iso: string): string {
+  return myt(iso).toISOString().slice(0, 10);
+}

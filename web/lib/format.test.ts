@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { hourLabel, hourOfIso, hourStart, isStale, percent, timeMYT, weekdayDate } from "./format";
+import { dateMYT, hourLabel, hourOfIso, hourStart, isStale, percent, timeMYT, weekdayDate } from "./format";
 
 test("times show in Malaysia time whatever the device time zone", () => {
   // The test script runs with TZ=America/New_York.
@@ -23,4 +23,10 @@ test("staleness and helpers", () => {
   expect(hourStart("2026-10-15T02:10:00Z")).toBe("2026-10-15T02:00:00.000Z");
   expect(percent(0.712)).toBe("71%");
   expect(percent(null)).toBe("–");
+});
+
+
+test("the Malaysia date of an instant", () => {
+  expect(dateMYT("2026-10-15T15:59:00Z")).toBe("2026-10-15");
+  expect(dateMYT("2026-10-15T16:00:00Z")).toBe("2026-10-16"); // midnight in Malaysia
 });

@@ -22,3 +22,17 @@ test("reports HTTP errors and skips a null path", async () => {
   render(<Probe path={null} />);
   expect(fetchMock).toHaveBeenCalledTimes(1);
 });
+
+function Fast() {
+  const { data, error } = useData<{ value: number }>("/data/x.json", 30);
+  return <p>{error ? `error: ${error}` : data ? `value: ${data.value}` : "loading"}</p>;
+}
+
+test("a later successful refresh clears the error", async () => {
+  let calls = 0;
+  vi.stubGlobal("fetch", vi.fn(async () =>
+    ++calls === 1 ? new Response("down", { status: 503 }) : new Response(JSON.stringify({ value: 9 }), { status: 200 })));
+  render(<Fast />);
+  await waitFor(() => expect(screen.getByText("error: HTTP 503")).toBeInTheDocument());
+  await waitFor(() => expect(screen.getByText("value: 9")).toBeInTheDocument());
+});
