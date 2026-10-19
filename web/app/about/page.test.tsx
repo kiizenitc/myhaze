@@ -19,3 +19,12 @@ test("the forecast method has an anchor the map links to", () => {
   render(<AboutPage />);
   expect(screen.getByRole("heading", { name: "How the forecast works" })).toHaveAttribute("id", "how");
 });
+
+test("tells parents which aqicn number to compare with which MYHaze number", () => {
+  render(<AboutPage />);
+  const text = document.body.textContent ?? "";
+  for (const phrase of ["same PM2.5 number aqicn.org shows", "the big number at the top is DOE's official 24-hour API",
+    "Unhealthy for Sensitive Groups"]) {
+    expect(text).toContain(phrase);
+  }
+});

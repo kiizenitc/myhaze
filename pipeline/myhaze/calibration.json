@@ -1,5 +1,18 @@
 {
-  "aqicn_table": "us_epa_2024",
-  "my_table": "maaqs2020",
-  "status": "uncalibrated defaults; run python -m myhaze.jobs.calibrate once 24 hours of aqicn hourly data exist"
+  "aqicn_table": "us_epa_2012",
+  "my_table": "modified_epa",
+  "mae": 0.96,
+  "n": 4801,
+  "scores": {
+    "us_epa_2012+maaqs2020": 19.15,
+    "us_epa_2012+modified_epa": 0.96,
+    "us_epa_2012+us_epa_2012": 8.18,
+    "us_epa_2012+us_epa_2024": 11.48,
+    "us_epa_2024+maaqs2020": 16.02,
+    "us_epa_2024+modified_epa": 3.82,
+    "us_epa_2024+us_epa_2012": 8.33,
+    "us_epa_2024+us_epa_2024": 8.01
+  },
+  "computed_at": "2026-10-19T02:03:53+00:00",
+  "status": "calibrated"
 }

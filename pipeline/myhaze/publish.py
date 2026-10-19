@@ -31,7 +31,7 @@ from pathlib import Path
 
 from . import wind
 from .config import MYT
-from .convert import BANDS, band, ugm3_to_api
+from .convert import BANDS, band, ugm3_to_real_feel
 from .model.hourly import HourlyPath
 from .rows import FireCell, HourlyWeather, Station
 
@@ -123,13 +123,13 @@ def first_rain(weather: HourlyWeather | None, times: list[datetime], mm: float =
 
 
 def first_trapped(path: HourlyPath) -> datetime | None:
-    """First early-morning hour with a shallow mixing layer and haze to trap (API above 50)."""
+    """First early-morning hour with a shallow mixing layer and haze to trap (Real Feel above 50)."""
     return next((t for t, trapped, pm in zip(path.times[1:], path.trapped[1:], path.p50[1:])
-                 if trapped and pm is not None and ugm3_to_api(pm) > 50 and 5 <= t.astimezone(MYT).hour <= 10), None)
+                 if trapped and pm is not None and ugm3_to_real_feel(pm) > 50 and 5 <= t.astimezone(MYT).hour <= 10), None)
 
 
 def now_block(reading: tuple[datetime, float] | None, official: tuple[datetime, float] | None) -> dict:
-    rf = round(ugm3_to_api(reading[1])) if reading else None
+    rf = round(ugm3_to_real_feel(reading[1])) if reading else None
     return {
         "real_feel": rf, "real_feel_band": band(rf) if rf is not None else None,
         "pm25": round(reading[1], 1) if reading else None, "real_feel_hour": iso(reading[0]) if reading else None,
@@ -146,9 +146,9 @@ def _round(value) -> int | None:
 def station_payload(station: Station, generated_at: datetime, method: str, estimated: bool, now: dict,
                     path: HourlyPath, weather: HourlyWeather | None, official: tuple[list, list, list],
                     closure: dict, why: list[str], now_hour: datetime) -> dict:
-    rf = [int(round(ugm3_to_api(v))) for v in path.p50]
-    rf_low = [int(round(ugm3_to_api(v))) for v in path.p10]
-    rf_high = [int(round(ugm3_to_api(v))) for v in path.p90]
+    rf = [int(round(ugm3_to_real_feel(v))) for v in path.p50]
+    rf_low = [int(round(ugm3_to_real_feel(v))) for v in path.p10]
+    rf_high = [int(round(ugm3_to_real_feel(v))) for v in path.p90]
     wx = {t: i for i, t in enumerate(weather.times)} if weather else {}
 
     def at(series: list | None, t: datetime):

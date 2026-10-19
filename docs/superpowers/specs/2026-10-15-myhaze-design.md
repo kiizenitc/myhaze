@@ -17,7 +17,7 @@ The site informs; parents decide. It never tells a parent to keep a child home.
 |---|---|
 | Audience | Public, all Malaysian parents. English only. |
 | Headline numbers | Both: **Real Feel** (this hour's air) and **official DOE API** (24-hour average), side by side. Full 24-hour day, not just school hours. |
-| Scale | Malaysian API bands for both numbers. Real Feel must never be a 24-hour average. |
+| Scale | Malaysian band names for both numbers. Real Feel is on aqicn's own US AQI scale (owner decision, 19 Oct 2026: it equals the PM2.5 number aqicn shows); the official API and closure indicator are on DOE's calibrated scale. Real Feel must never be a 24-hour average. |
 | Location | Pick from the 68 DOE stations by list or map. **No GPS.** Several stations can be saved (home, school, tuition), stored only in the browser. |
 | Closure indicator | Shows whether MOE's published rules *would* trigger. Clearly labelled: MOE decides, follow official MOE announcements. |
 | Training data | **Malaysian air-quality data from July 2026 onward only.** Fires (Indonesia + Malaysia) and weather are inputs, not air-quality data. |
@@ -31,7 +31,7 @@ The site informs; parents decide. It never tells a parent to keep a child home.
 
 ## 2. Definitions
 
-- **Real Feel:** the PM2.5 concentration for *this one hour* at a station, expressed on the Malaysian API scale. It is an API-equivalent number computed by MYHaze, not an official DOE figure. It moves fast when smoke arrives.
+- **Real Feel:** the PM2.5 concentration for *this one hour* at a station, expressed on aqicn's US AQI scale (until 19 Oct 2026: the Malaysian API scale), so it is the same PM2.5 number aqicn shows for that hour. It is computed by MYHaze, not an official DOE figure. It moves fast when smoke arrives.
 - **Official API:** the number DOE publishes every hour. For PM2.5 it is computed from a **24-hour running average**, so it lags. This is what news, DOE and MOE use.
 - **Bands** (Malaysian API): Good 0–50 · Moderate 51–100 · Unhealthy 101–200 · Very unhealthy 201–300 · Hazardous >300. Every colour is always shown with its band word.
 - **Closure indicator:** the probability that MOE's published rules would be met (see §6.4). It is an indicator, not a prediction of what MOE will do.
@@ -74,7 +74,7 @@ The site informs; parents decide. It never tells a parent to keep a child home.
 
 1. aqicn `iaqi.pm25` (US AQI) → PM2.5 µg/m³ using the US EPA breakpoint table aqicn applies. Determine which EPA table (pre-2024 or 2024) by checking that the 24-hour mean of converted values reproduces DOE's official API.
 2. µg/m³ → Malaysian API sub-index using DOE's PM2.5 breakpoints. The breakpoints are fitted and confirmed against DOE's own published API and aqicn's matching hourly values, then frozen in code with the evidence in `docs/methodology.md`.
-3. Real Feel = step 2 applied to a **1-hour** concentration. Official API forecast = step 2 applied to the **24-hour rolling mean** of observed and forecast hourly values.
+3. Real Feel = step 1's US AQI table applied to a **1-hour** concentration (owner decision, 19 Oct 2026; see `docs/methodology.md`). Official API forecast = step 2 applied to the **24-hour rolling mean** of observed and forecast hourly values.
 
 ## 6. Forecast method
 
@@ -205,7 +205,7 @@ Tables: `stations`, `obs_hourly` (station, hour, official API, PM2.5 US AQI, PM2
 2. **Station, "Plan the day":** Today / Tomorrow / day-after tabs. Four fixed 6-hour blocks (6am–12pm, 12pm–6pm, 6pm–12am, 12am–6am), each with its worst band and when the worst hour is ("worst ~8am"). A block's band comes from the *likely* (median) hourly Real Feel; the range lives on the hourly view. "Best window outdoors" when one exists. The "why" list. Official API forecast range and closure indicator. A clear link: **"See hour-by-hour forecast"**, opening the 48-hour hourly chart (Real Feel line with shaded range, official API line, rain and wind rows).
 3. **Pick a station:** all 68 stations grouped by state with search; the map shows station dots coloured by Real Feel, fire hotspots, wind arrows, and a time slider from now to +48 h.
 4. **How accurate is this?:** backtest results against the targets, the live Track record (updated daily), and baselines for comparison.
-5. **About:** Real Feel vs official API; why aqicn/IQAir show higher numbers (different scale, 1-hour values); the closure disclaimer; "not medical advice"; data credits (DOE, WAQI/aqicn, NASA FIRMS, Open-Meteo/CAMS); AGPL licence and source link.
+5. **About:** Real Feel vs official API; which aqicn number matches which MYHaze number (aqicn's headline is DOE's 24-hour API, its PM2.5 row is Real Feel); the closure disclaimer; "not medical advice"; data credits (DOE, WAQI/aqicn, NASA FIRMS, Open-Meteo/CAMS); AGPL licence and source link.
 
 ### 8.2 Advice wording
 

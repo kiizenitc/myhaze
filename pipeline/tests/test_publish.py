@@ -3,6 +3,7 @@ from datetime import date, datetime, timedelta, timezone
 import pytest
 
 from myhaze.config import MYT
+from myhaze.convert import aqicn_aqi_to_ugm3, ugm3_to_real_feel
 from myhaze.model.hourly import build_path, official_api_path
 from myhaze.publish import (best_window, day_plan, first_trapped, latest_entry, now_block, station_payload, validate_latest,
                             validate_station, when_phrase, write_site_data)
@@ -83,6 +84,17 @@ def test_nan_never_reaches_the_published_json(tmp_path):
     with pytest.raises(ValueError):
         write_site_data(tmp_path / "out", {"generated_at": "x", "stations": [latest_entry(good, KLANG)]}, [good], {})
     assert not (tmp_path / "out" / "latest.json").exists()
+
+
+def test_real_feel_now_is_the_pm25_number_aqicn_shows():
+    block = now_block((NOW, aqicn_aqi_to_ugm3(130)), (NOW, 155.0))
+    assert (block["real_feel"], block["real_feel_band"]) == (130, "unhealthy")
+    assert (block["official_api"], block["official_band"]) == (155, "unhealthy")
+
+
+def test_forecast_hours_show_real_feel_on_aqicns_scale():
+    for hour in sample_station()["hours"]:
+        assert abs(hour["rf"] - ugm3_to_real_feel(hour["pm25"])) <= 1
 
 
 def test_trapped_smoke_is_mentioned_only_when_there_is_haze_to_trap():

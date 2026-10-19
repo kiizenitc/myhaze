@@ -73,8 +73,8 @@ export default function AccuracyPage() {
       </p>
       <p className="mt-2 text-[var(--ink-2)]">
         How sure are these numbers? The backtest covers about a thousand station-days from a single haze season, so
-        each percentage could be a few points higher or lower. It scores daily averages; for hour-by-hour accuracy,
-        only the live track record below can tell.
+        each percentage could be a few points higher or lower. It scores the Real Feel band of each day&apos;s average; for
+        hour-by-hour accuracy, only the live track record below can tell.
       </p>
       {backtest ? (
         LEADS.map(([lead, label, aim]) => backtest[lead]

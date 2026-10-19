@@ -1,7 +1,9 @@
 """PM2.5 unit conversions: US AQI (what aqicn publishes) <-> µg/m³ <-> Malaysian API (DOE's scale).
 
-DOE does not publish its PM2.5 breakpoints online, so the table actually used is chosen by
-`python -m myhaze.jobs.calibrate` from archived DOE readings and stored in calibration.json.
+Real Feel is one hour's PM2.5 on aqicn's own US AQI scale, so it is the PM2.5 number aqicn shows for
+that station. The official API and the closure rule use DOE's table. DOE does not publish its PM2.5
+breakpoints online, so both tables are chosen by `python -m myhaze.jobs.calibrate` from archived
+readings and stored in calibration.json ("aqicn_table", and DOE's "my_table").
 """
 from __future__ import annotations
 
@@ -25,7 +27,7 @@ MY_TABLES = {
     "us_epa_2012": US_EPA_2012,
     "us_epa_2024": US_EPA_2024,
 }
-DEFAULTS = {"aqicn_table": "us_epa_2024", "my_table": "maaqs2020"}
+DEFAULTS = {"aqicn_table": "us_epa_2012", "my_table": "modified_epa"}  # calibrated 19 Oct 2026
 CALIBRATION_FILE = Path(__file__).with_name("calibration.json")
 
 
@@ -78,7 +80,12 @@ def aqicn_aqi_to_ugm3(aqi: float) -> float:
     return conc_from_index(aqi, US_TABLES[_CALIBRATION["aqicn_table"]])
 
 
+def ugm3_to_real_feel(conc: float) -> float:
+    return index_from_conc(conc, US_TABLES[_CALIBRATION["aqicn_table"]])
+
+
 def ugm3_to_api(conc: float) -> float:
+    """DOE's official scale: for the official API (a 24-hour mean) and the closure rule, never for Real Feel."""
     return index_from_conc(conc, MY_TABLES[_CALIBRATION["my_table"]])
 
 

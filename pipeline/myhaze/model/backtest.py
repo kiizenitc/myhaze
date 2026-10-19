@@ -65,8 +65,8 @@ def _pct(value) -> str:
 
 def render_markdown(report: dict) -> str:
     lines = ["# MYHaze backtest", "",
-             f"Trained on days up to {report['tune_end']}; tested on later days. Bands are the official API "
-             "bands of each day's average PM2.5. Target for tomorrow: ≥90% correct band and ≥90% of "
+             f"Trained on days up to {report['tune_end']}; tested on later days. Bands are the Real Feel "
+             "bands (aqicn's US AQI numbers, Malaysia's band names) of each day's average PM2.5. Target for tomorrow: ≥90% correct band and ≥90% of "
              "unhealthy-or-worse days caught.", "",
              "| Lead | Method | Days | Correct band | Unhealthy+ caught | False alarms | Avg miss (µg/m³) | In 80% range |",
              "|---|---|---|---|---|---|---|---|"]

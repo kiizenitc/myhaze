@@ -11,19 +11,31 @@ export default function AboutPage() {
 
       <h2 className={H2}>Two numbers, two questions</h2>
       <p>
-        <strong>Real Feel</strong> is this hour&apos;s air: the latest hourly PM2.5 reading at the station, put on
-        Malaysia&apos;s API scale so it reads like the numbers you know. It changes hour by hour, the way the air outside does.
+        <strong>Real Feel</strong> is this hour&apos;s air: the latest hourly PM2.5 reading at the station, on the US AQI
+        scale that aqicn.org uses, so it is the same PM2.5 number aqicn.org shows for that station and hour. It changes hour
+        by hour, the way the air outside does. The map, the 48-hour forecast and the day plan all use it.
       </p>
       <p>
-        The <strong>official DOE API</strong> is the Department of Environment&apos;s figure, a 24-hour average. It moves
-        slowly, so it can still look fine after the air has turned bad, and stay high after the air has cleared.
-        School-closure rules use this number.
+        The <strong>official DOE API</strong> is the Department of Environment&apos;s figure, a 24-hour average on DOE&apos;s
+        own scale. It moves slowly, so it can still look fine after the air has turned bad, and stay high after the air has
+        cleared. School-closure rules use this number, and so does MYHaze&apos;s closure indicator.
+      </p>
+      <p>
+        The two scales differ most between about 35 and 55 µg/m³, where DOE&apos;s is gentler. So Real Feel can read higher
+        than DOE&apos;s figure even when the air has stayed the same all day.
       </p>
 
-      <h2 className={H2}>Why aqicn.org and IQAir show different numbers</h2>
+      <h2 className={H2}>Comparing with aqicn.org and IQAir</h2>
       <p>
-        They use the US AQI scale and shorter averaging times. The same air gets a different number on a different scale.
-        MYHaze shows both of its numbers on Malaysia&apos;s API scale so they can be compared with DOE&apos;s.
+        On a Malaysian station&apos;s page on aqicn.org, the big number at the top is DOE&apos;s official 24-hour API: compare it
+        with MYHaze&apos;s official DOE API. The hourly reading is the PM2.5 row underneath it: that is MYHaze&apos;s Real Feel.
+        MYHaze updates twice an hour, so for a short while it can be an hour behind. IQAir also uses the US AQI,
+        but it can draw on other monitors and update at other times, so its numbers can differ a little.
+      </p>
+      <p>
+        Both MYHaze numbers use Malaysia&apos;s band names: 0–50 Good, 51–100 Moderate, 101–200 Unhealthy, 201–300 Very
+        unhealthy, above 300 Hazardous. aqicn.org calls 101–150 &quot;Unhealthy for Sensitive Groups&quot;; MYHaze counts it
+        as Unhealthy.
       </p>
 
       <h2 id="how" className={H2}>How the forecast works</h2>

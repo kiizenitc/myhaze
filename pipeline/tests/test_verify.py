@@ -28,6 +28,14 @@ def test_only_a_completed_day_is_scored():
     assert {row[0] for row in rows} == {date(2026, 10, 15)}
 
 
+def test_hours_are_scored_on_the_real_feel_scale():
+    first = datetime(2026, 10, 15, 0, tzinfo=timezone.utc)
+    runs = [(first, "S", first, [42.0] * 48)]  # Real Feel 117: unhealthy, though DOE's own table calls it moderate
+    observed = {"S": {first + timedelta(hours=h): 42.0 for h in range(48)}}
+    rows = score_runs(runs, observed)
+    assert (sum(r[4] for r in rows), sum(r[5] for r in rows)) == (47, 47)
+
+
 @pytest.mark.parametrize("job", ["verify", "train"])
 def test_a_failed_database_connect_never_prints_the_password(job, monkeypatch, capsys):
     import importlib

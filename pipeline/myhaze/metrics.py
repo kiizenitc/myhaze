@@ -1,7 +1,7 @@
-"""Forecast scores on the official API scale: the band people see, and whether bad days were caught."""
+"""Forecast scores on the Real Feel scale: the band people see, and whether bad days were caught."""
 from __future__ import annotations
 
-from .convert import band, ugm3_to_api
+from .convert import band, ugm3_to_real_feel
 
 OK_BANDS = ("good", "moderate")
 
@@ -11,8 +11,8 @@ def evaluate(records: list[dict]) -> dict:
     if not rows:
         return {"n": 0, "band_accuracy": None, "unhealthy_days": 0, "pod_unhealthy": None, "far_unhealthy": None,
                 "mae_ugm3": None, "coverage_80": None}
-    obs_bands = [band(ugm3_to_api(r["obs"])) for r in rows]
-    pred_bands = [band(ugm3_to_api(r["p50"])) for r in rows]
+    obs_bands = [band(ugm3_to_real_feel(r["obs"])) for r in rows]
+    pred_bands = [band(ugm3_to_real_feel(r["p50"])) for r in rows]
     obs_bad = [b not in OK_BANDS for b in obs_bands]
     pred_bad = [b not in OK_BANDS for b in pred_bands]
     caught = sum(p and o for p, o in zip(pred_bad, obs_bad))

@@ -6,7 +6,7 @@ from collections import defaultdict
 from datetime import date, datetime, time, timedelta, timezone
 
 from ..config import MYT, load_settings
-from ..convert import aqicn_aqi_to_ugm3, band, ugm3_to_api
+from ..convert import aqicn_aqi_to_ugm3, band, ugm3_to_real_feel
 from ..metrics import OK_BANDS
 from ..store import open_store
 
@@ -27,7 +27,7 @@ def score_runs(runs, observed: dict[str, dict[datetime, float]],
             actual = seen.get(t)
             if actual is None:
                 continue
-            predicted_band, actual_band = band(ugm3_to_api(value)), band(ugm3_to_api(actual))
+            predicted_band, actual_band = band(ugm3_to_real_feel(value)), band(ugm3_to_real_feel(actual))
             entry = totals[(day, "1-24h" if h <= 24 else "25-48h")]
             entry[0] += 1
             entry[1] += predicted_band == actual_band
