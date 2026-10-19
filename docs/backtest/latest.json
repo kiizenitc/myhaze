@@ -3,75 +3,75 @@
   "tune_end": "2026-09-30",
   "leads": {
     "1": {
-      "rounds": 172,
+      "rounds": 166,
       "n_train": 5824,
       "test_from": "2026-10-01",
-      "test_to": "2026-10-17",
+      "test_to": "2026-10-18",
       "model": {
-        "n": 1024,
-        "band_accuracy": 0.6992,
-        "unhealthy_days": 545,
-        "pod_unhealthy": 0.822,
-        "far_unhealthy": 0.0667,
-        "mae_ugm3": 8.46,
-        "coverage_80": 0.7021
+        "n": 1085,
+        "band_accuracy": 0.8359,
+        "unhealthy_days": 565,
+        "pod_unhealthy": 0.8319,
+        "far_unhealthy": 0.0802,
+        "mae_ugm3": 9.14,
+        "coverage_80": 0.6885
       },
       "persistence": {
-        "n": 1024,
-        "band_accuracy": 0.5869,
-        "unhealthy_days": 545,
-        "pod_unhealthy": 0.7945,
-        "far_unhealthy": 0.1907,
-        "mae_ugm3": 11.14,
+        "n": 1085,
+        "band_accuracy": 0.7318,
+        "unhealthy_days": 565,
+        "pod_unhealthy": 0.7912,
+        "far_unhealthy": 0.1887,
+        "mae_ugm3": 11.98,
         "coverage_80": null
       },
       "cams": {
-        "n": 1024,
-        "band_accuracy": 0.6396,
-        "unhealthy_days": 545,
-        "pod_unhealthy": 0.7963,
-        "far_unhealthy": 0.1285,
-        "mae_ugm3": 11.42,
+        "n": 1085,
+        "band_accuracy": 0.7806,
+        "unhealthy_days": 565,
+        "pod_unhealthy": 0.8354,
+        "far_unhealthy": 0.1495,
+        "mae_ugm3": 12.01,
         "coverage_80": null
       },
-      "method": "model",
+      "method": "cams",
       "meets_target": false
     },
     "2": {
-      "rounds": 70,
+      "rounds": 53,
       "n_train": 5760,
       "test_from": "2026-10-01",
-      "test_to": "2026-10-17",
+      "test_to": "2026-10-18",
       "model": {
-        "n": 1025,
-        "band_accuracy": 0.6478,
-        "unhealthy_days": 544,
-        "pod_unhealthy": 0.7555,
-        "far_unhealthy": 0.0967,
-        "mae_ugm3": 10.57,
-        "coverage_80": 0.7454
+        "n": 1087,
+        "band_accuracy": 0.7902,
+        "unhealthy_days": 565,
+        "pod_unhealthy": 0.7805,
+        "far_unhealthy": 0.1145,
+        "mae_ugm3": 11.4,
+        "coverage_80": 0.7967
       },
       "persistence": {
-        "n": 1025,
-        "band_accuracy": 0.4615,
-        "unhealthy_days": 544,
-        "pod_unhealthy": 0.7132,
-        "far_unhealthy": 0.2971,
-        "mae_ugm3": 16.41,
+        "n": 1087,
+        "band_accuracy": 0.6495,
+        "unhealthy_days": 565,
+        "pod_unhealthy": 0.7239,
+        "far_unhealthy": 0.2812,
+        "mae_ugm3": 17.28,
         "coverage_80": null
       },
       "cams": {
-        "n": 1025,
-        "band_accuracy": 0.6332,
-        "unhealthy_days": 544,
-        "pod_unhealthy": 0.7831,
-        "far_unhealthy": 0.1324,
-        "mae_ugm3": 12.4,
+        "n": 1087,
+        "band_accuracy": 0.7718,
+        "unhealthy_days": 565,
+        "pod_unhealthy": 0.823,
+        "far_unhealthy": 0.1606,
+        "mae_ugm3": 12.78,
         "coverage_80": null
       },
       "method": "cams",
       "meets_target": false
     }
   },
-  "version": "20261017T2111Z"
+  "version": "20261019T0244Z"
 }
