@@ -31,6 +31,13 @@ class FakeStore:
             self.obs[(r.station_id, r.hour, r.source)] = r
         return len(keep), len(rows) - len(keep)
 
+    def latest_readings(self, source):
+        latest = {}
+        for (station_id, hour, src), row in self.obs.items():
+            if src == source and (station_id not in latest or hour > latest[station_id].hour):
+                latest[station_id] = row
+        return latest
+
     def latest_hours(self, source):
         latest = {}
         for station_id, hour, src in self.obs:

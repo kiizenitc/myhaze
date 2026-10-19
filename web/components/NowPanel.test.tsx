@@ -15,6 +15,7 @@ test("Real Feel is this hour's air and the official API is a 24-hour average", (
   expect(screen.getByText(ADVICE.very_unhealthy)).toBeInTheDocument();
   expect(screen.getByText("PM2.5 92.1 µg/m³ at 10:00am")).toBeInTheDocument();
   expect(screen.getByText("DOE's figure for 10:00am")).toBeInTheDocument();
+  expect(screen.getByText("Same as the big number on aqicn.org and DOE's APIMS")).toBeInTheDocument();
 });
 
 test("an estimated station explains the missing reading and never prints null", () => {

@@ -45,6 +45,7 @@ export function NowPanel({ now, sensitive }: { now: Now; sensitive: boolean }) {
               {now.official_hour && (
                 <p className="text-sm text-[var(--ink-2)]">{`DOE's figure for ${timeMYT(now.official_hour)}`}</p>
               )}
+              <p className="text-xs text-[var(--ink-2)]">Same as the big number on aqicn.org and DOE&apos;s APIMS</p>
             </>
           ) : (
             <p className="text-[var(--ink-2)]">DOE has not published a reading in the last few hours.</p>

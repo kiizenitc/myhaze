@@ -81,6 +81,13 @@ class Store:
                 cur.executemany(_OBS_UPSERT, [tuple(getattr(r, c) for c in OBS_COLUMNS) for r in keep])
         return len(keep), len(rows) - len(keep)
 
+    def latest_readings(self, source: str) -> dict[str, Obs]:
+        """Each station's newest row from `source` in the last two days."""
+        rows = self.conn.execute(
+            f"select distinct on (station_id) {', '.join(OBS_COLUMNS)} from obs_hourly "
+            "where source = %s and hour > now() - interval '2 days' order by station_id, hour desc", (source,)).fetchall()
+        return {row[0]: Obs(**dict(zip(OBS_COLUMNS, row))) for row in rows}
+
     def latest_hours(self, source: str) -> dict[str, datetime]:
         return dict(self.conn.execute(
             "select station_id, max(hour) from obs_hourly "

@@ -104,6 +104,18 @@ def archive_doe(client, store, now_utc: datetime, backfill_days: int = 0, *,
             "errors": errors[:5], "error_count": len(errors)}
 
 
+POLLUTANT_FIELDS = ("pm25_aqi", "pm10_aqi", "o3_aqi", "no2_aqi", "so2_aqi", "co_aqi")
+
+
+def _carried_forward(obs, previous) -> bool:
+    """aqicn moves a feed's clock to the new hour before the new readings arrive, repeating the last hour's values
+    (19 Oct 2026: 5 stations at once). Such a row is not a reading for the new hour."""
+    if previous is None or obs.hour <= previous.hour:
+        return False
+    values = [getattr(obs, f) for f in POLLUTANT_FIELDS]
+    return any(v is not None for v in values) and values == [getattr(previous, f) for f in POLLUTANT_FIELDS]
+
+
 def archive_aqicn(client, store, settings, now_utc: datetime, *,
                   budget_s: float = AQICN_BUDGET_S, clock=time.monotonic) -> dict:
     if not settings.aqicn_token:
@@ -112,11 +124,10 @@ def archive_aqicn(client, store, settings, now_utc: datetime, *,
     if not uids:
         return {"status": "failed", "errors": ["no stations matched to aqicn"]}
     hour = _hour(now_utc)
-    latest = store.latest_hours("aqicn")
-    todo = {station_id: uid for station_id, uid in uids.items() if latest.get(station_id) != hour}
-    if not todo:
-        return {"status": "skipped", "reason": "hour already stored"}
-    rows, errors, no_reading = [], [], 0
+    # Every run reads every feed again: aqicn corrects an hour after first posting it, and the newest values win.
+    previous = store.latest_readings("aqicn")
+    todo = dict(uids)
+    rows, errors, no_reading, carried = [], [], 0, 0
     started = clock()
     for station_id, uid in sorted(todo.items()):
         if clock() - started > budget_s:
@@ -129,18 +140,20 @@ def archive_aqicn(client, store, settings, now_utc: datetime, *,
             continue
         if obs is None:
             no_reading += 1
+        elif _carried_forward(obs, previous.get(station_id)):
+            carried += 1
         else:
             rows.append(obs)
     written, _unknown = store.upsert_obs(rows) if rows else (0, 0)
     freshest = max(store.latest_hours("aqicn").values(), default=None)
     stale = freshest is None or freshest < hour - AQICN_STALE_AFTER
-    if not written:
+    if not written and not carried:
         errors.append("no aqicn readings were saved")
     elif stale:
         errors.append(f"newest aqicn reading is from {freshest.isoformat() if freshest else 'over 2 days ago'}")
-    status = "failed" if not written or stale else ("partial" if errors or no_reading else "ok")
+    status = "failed" if (not written and not carried) or stale else ("partial" if errors or no_reading else "ok")
     return {"status": status, "written": written, "requested": len(todo), "no_reading": no_reading,
-            "errors": errors[:5], "error_count": len(errors)}
+            "carried_forward": carried, "errors": errors[:5], "error_count": len(errors)}
 
 
 def archive_cams(client, store, now_utc: datetime) -> dict:

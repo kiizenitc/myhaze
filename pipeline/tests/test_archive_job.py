@@ -52,7 +52,7 @@ def test_first_run_archives_doe_aqicn_and_cams():
     assert store.runs[-1][:2] == ("archive", "ok")
 
 
-def test_second_run_in_the_same_hour_makes_no_requests():
+def test_second_run_in_the_same_hour_only_reads_the_aqicn_feeds_again():
     store, calls = FakeStore(), []
     client = routed_client(HEALTHY, calls)
     archive.run(NOW, SETTINGS, client, store)
@@ -60,8 +60,8 @@ def test_second_run_in_the_same_hour_makes_no_requests():
 
     result = archive.run(NOW.replace(minute=20), SETTINGS, client, store)
 
-    assert len(calls) == first_run_calls
-    assert {d["status"] for d in result.details.values()} == {"skipped"}
+    assert calls[first_run_calls:] == ["/feed/@3001/"]  # aqicn corrects an hour after first posting it
+    assert {name for name, d in result.details.items() if d["status"] != "skipped"} == {"aqicn"}
     assert result.status == "ok"
 
 
@@ -304,3 +304,36 @@ def test_stations_the_country_wide_aqicn_search_leaves_out_get_a_close_look():
     archive.sync_stations(make_client(transport=httpx.MockTransport(handler)), store, SETTINGS, NOW)
     assert store.aqicn_uids() == {"CA01R": 3001, "MCAQM001": 7007}
     assert len(boxes) == 2  # one country-wide search, one close look for the station it left out
+
+
+def _kangar_reading(hour, **changes):
+    from dataclasses import replace
+
+    from myhaze.sources import aqicn
+
+    return replace(aqicn.parse_feed(fixtures.AQICN_FEED_KANGAR, "CA01R"), hour=hour, **changes)
+
+
+def test_an_hour_already_stored_is_read_again_so_aqicns_later_correction_replaces_it():
+    store = FakeStore(stations=[KANGAR], aqicn={"CA01R": 3001})
+    store.upsert_obs([_kangar_reading(HOUR, pm25_aqi=100)])  # what aqicn first posted for 08:00
+
+    detail = archive.archive_aqicn(routed_client({"/feed/@3001/": fixtures.AQICN_FEED_KANGAR}, []), store,
+                                   SETTINGS, NOW.replace(minute=35))
+
+    assert detail["status"] == "ok"
+    assert store.obs[("CA01R", HOUR, "aqicn")].pm25_aqi == 130
+
+
+def test_a_new_hour_that_only_repeats_the_last_hours_values_is_not_stored():
+    # aqicn moves a feed's clock to the new hour before the new readings arrive, repeating the last hour's values
+    from datetime import timedelta
+
+    store = FakeStore(stations=[KANGAR], aqicn={"CA01R": 3001})
+    store.upsert_obs([_kangar_reading(HOUR - timedelta(hours=1))])
+
+    detail = archive.archive_aqicn(routed_client({"/feed/@3001/": fixtures.AQICN_FEED_KANGAR}, []), store,
+                                   SETTINGS, NOW.replace(minute=20))
+
+    assert ("CA01R", HOUR, "aqicn") not in store.obs
+    assert detail["carried_forward"] == 1 and detail["status"] != "failed"
