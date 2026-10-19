@@ -31,7 +31,7 @@ export default function AboutPage() {
         On a Malaysian station&apos;s page on aqicn.org, the big number at the top is DOE&apos;s official 24-hour API: compare it
         with MYHaze&apos;s official DOE API. The rows underneath are this hour&apos;s readings for each pollutant: Real Feel is
         the highest of them, nearly always the PM2.5 row.
-        MYHaze updates twice an hour, so for a short while it can be an hour behind. IQAir also uses the US AQI,
+        MYHaze updates every 15 minutes, so it can trail aqicn.org by about 20 minutes. IQAir also uses the US AQI,
         but it can draw on other monitors and update at other times, so its numbers can differ a little.
       </p>
       <p>

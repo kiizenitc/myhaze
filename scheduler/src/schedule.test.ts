@@ -4,12 +4,13 @@ import { dispatch, workflowsDue } from "./schedule";
 
 const due = (iso: string) => workflowsDue(new Date(iso));
 
-test("archive every 15 minutes, forecast at :25, verify and train at their Malaysia-time slots", () => {
+test("archive every 15 minutes, a forecast 5 minutes after each, verify and train at their Malaysia-time slots", () => {
   expect(due("2026-10-15T06:05:00Z")).toEqual(["archive.yml"]);
   expect(due("2026-10-15T06:50:00Z")).toEqual(["archive.yml"]);
-  expect(due("2026-10-15T06:25:00Z")).toEqual(["forecast.yml"]);
-  expect(due("2026-10-15T06:55:00Z")).toEqual(["forecast.yml"]); // twice an hour: the site is never far behind
-  expect(due("2026-10-15T06:10:00Z")).toEqual([]);
+  // aqicn posts each hour some time after :05, so a forecast follows every archive pass and the site trails aqicn
+  // by about 20 minutes at most, not 50
+  for (const minute of ["10", "25", "40", "55"]) expect(due(`2026-10-15T06:${minute}:00Z`)).toEqual(["forecast.yml"]);
+  expect(due("2026-10-15T06:15:00Z")).toEqual([]);
   expect(due("2026-10-15T18:30:00Z")).toEqual(["verify.yml"]);
   expect(due("2026-10-17T19:00:00Z")).toEqual(["train.yml"]); // Saturday 19:00 UTC = Sunday 03:00 in Malaysia
   expect(due("2026-10-16T19:00:00Z")).toEqual([]);

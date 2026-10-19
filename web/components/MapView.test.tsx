@@ -25,7 +25,7 @@ test("the time slider steps through the 48 hours in Malaysia time, with a band l
   render(<MapView />);
   const slider = await screen.findByRole("slider", { name: "Time" });
   expect(screen.getByText("Now · Thu 15 Oct 10am")).toBeInTheDocument();
-  expect(screen.getByText("Latest readings: 10am (updated 10:10am)")).toBeInTheDocument();
+  expect(screen.getByText("Latest readings: 9am (updated 10:10am)")).toBeInTheDocument();
   fireEvent.change(slider, { target: { value: "14" } });
   expect(screen.getByTestId("map")).toHaveTextContent("hour 14");
   expect(screen.getByText("Forecast · Fri 16 Oct 12am")).toBeInTheDocument();
@@ -99,4 +99,19 @@ test("the map says plainly that later hours are a forecast, with links to how it
   expect(note).toHaveTextContent("Forecast, not a measurement");
   expect(within(note).getByRole("link", { name: "How the forecast works" })).toHaveAttribute("href", "/about/#how");
   expect(within(note).getByRole("link", { name: "How accurate it is" })).toHaveAttribute("href", "/accuracy/");
+});
+
+
+test("readings from different hours show as a range, and none at all says only when it was updated", async () => {
+  const mixed = { ...makeMap(), readings: ["2026-10-15T01:00:00Z", "2026-10-15T02:00:00Z"] as [string, string] };
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => new Response(JSON.stringify(
+    String(url).includes("map.json") ? mixed : { generated_at: GENERATED, cells: [] }), { status: 200 })));
+  const { unmount } = render(<MapView />);
+  expect(await screen.findByText("Latest readings: 9am–10am (updated 10:10am)")).toBeInTheDocument();
+  unmount();
+  const empty = { ...makeMap(), readings: null };
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => new Response(JSON.stringify(
+    String(url).includes("map.json") ? empty : { generated_at: GENERATED, cells: [] }), { status: 200 })));
+  render(<MapView />);
+  expect(await screen.findByText("Updated 10:10am")).toBeInTheDocument();
 });

@@ -133,3 +133,14 @@ def test_map_payload_carries_each_stations_48_hourly_bands_and_real_feel():
     # Wind lives in wind.json now (a flowing field), so stations carry no wind of their own.
     assert entry == {"id": "CA21B", "name": "Klang", "state": "Selangor", "lat": 3.04, "lon": 101.45,
                      "bands": [h["band"] for h in good["hours"]], "rf": [h["rf"] for h in good["hours"]]}
+
+
+def test_map_payload_says_which_hours_the_now_readings_are_from():
+    from myhaze.publish import map_payload
+
+    fresh, late, none = sample_station(), sample_station(), sample_station()
+    late["now"] = {**late["now"], "real_feel_hour": "2026-10-15T14:00:00Z"}  # this station's feed is an hour behind
+    none["now"] = {**none["now"], "real_feel_hour": None}
+    got = map_payload([fresh, late, none], {"CA21B": KLANG}, NOW)
+    assert got["readings"] == ["2026-10-15T14:00:00Z", "2026-10-15T15:00:00Z"]
+    assert map_payload([none], {"CA21B": KLANG}, NOW)["readings"] is None

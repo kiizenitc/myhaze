@@ -196,9 +196,14 @@ def wind_payload(field: dict, now_hour: datetime, generated_at: datetime, hours:
 
 
 def map_payload(payloads: list[dict], stations: dict[str, Station], generated_at: datetime) -> dict:
-    """map.json: every station's 48 hourly bands and Real Feel numbers, for the map's time slider (wind: wind.json)."""
+    """map.json: every station's 48 hourly bands and Real Feel numbers, for the map's time slider (wind: wind.json).
+
+    "readings" is the oldest and newest hour of the stations' latest readings: the first slot is the current
+    clock hour, but a feed that has not posted this hour yet still shows the hour before."""
+    read = sorted({p["now"]["real_feel_hour"] for p in payloads if p["now"].get("real_feel_hour")})
     return {"generated_at": iso(generated_at),
             "times": [h["t"] for h in payloads[0]["hours"]] if payloads else [],
+            "readings": [read[0], read[-1]] if read else None,
             "stations": [{"id": p["id"], "name": p["name"], "state": p["state"],
                           "lat": stations[p["id"]].lat, "lon": stations[p["id"]].lon,
                           "bands": [h["band"] for h in p["hours"]],

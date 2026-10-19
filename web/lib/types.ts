@@ -136,6 +136,7 @@ export interface MapStation {
 export interface MapData {
   generated_at: string;
   times: string[];
+  readings?: [string, string] | null; // oldest and newest hour of the stations' latest readings
   stations: MapStation[];
 }
 

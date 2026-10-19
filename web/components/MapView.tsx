@@ -21,6 +21,13 @@ const FireMap = dynamic(() => import("@/components/FireMap").then((m) => m.FireM
 });
 
 /** The haze map: stations with their Real Feel, fires, the flowing wind and a 48-hour time slider. */
+function readingsLabel(data: MapData): string {
+  const updated = timeMYT(data.generated_at);
+  if (!data.readings) return `Updated ${updated}`;
+  const [oldest, newest] = data.readings.map(hourOfIso);
+  return `Latest readings: ${oldest === newest ? oldest : `${oldest}–${newest}`} (updated ${updated})`;
+}
+
 export function MapView() {
   const router = useRouter();
   const { data, error } = useData<MapData>("/data/map.json");
@@ -95,7 +102,7 @@ export function MapView() {
           </button>
         </div>
         <p className="text-xs text-[var(--ink-2)]">
-          {`Latest readings: ${hourOfIso(data.times[0])} (updated ${timeMYT(data.generated_at)})`}
+          {readingsLabel(data)}
         </p>
         <input id="map-hour" type="range" min={0} max={last} step={1} value={at}
                onChange={(e) => {
