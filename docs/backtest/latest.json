@@ -34,7 +34,7 @@
         "mae_ugm3": 12.01,
         "coverage_80": null
       },
-      "method": "cams",
+      "method": "model",
       "meets_target": false
     },
     "2": {
@@ -73,5 +73,5 @@
       "meets_target": false
     }
   },
-  "version": "20261019T0244Z"
+  "version": "20261019T0302Z"
 }
