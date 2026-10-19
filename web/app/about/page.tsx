@@ -11,9 +11,10 @@ export default function AboutPage() {
 
       <h2 className={H2}>Two numbers, two questions</h2>
       <p>
-        <strong>Real Feel</strong> is this hour&apos;s air: the latest hourly PM2.5 reading at the station, on the US AQI
-        scale that aqicn.org uses, so it is the same PM2.5 number aqicn.org shows for that station and hour. It changes hour
-        by hour, the way the air outside does. The map, the 48-hour forecast and the day plan all use it.
+        <strong>Real Feel</strong> is this hour&apos;s air: the station&apos;s overall hourly AQI, the highest of its latest
+        PM2.5, PM10, ozone, nitrogen dioxide, sulphur dioxide and carbon monoxide readings, on the US AQI scale that
+        aqicn.org uses. It changes hour by hour, the way the air outside does. During haze PM2.5 is almost always the
+        highest, so the 48-hour forecast predicts PM2.5. The map, the forecast and the day plan all use Real Feel.
       </p>
       <p>
         The <strong>official DOE API</strong> is the Department of Environment&apos;s figure, a 24-hour average on DOE&apos;s
@@ -28,7 +29,8 @@ export default function AboutPage() {
       <h2 className={H2}>Comparing with aqicn.org and IQAir</h2>
       <p>
         On a Malaysian station&apos;s page on aqicn.org, the big number at the top is DOE&apos;s official 24-hour API: compare it
-        with MYHaze&apos;s official DOE API. The hourly reading is the PM2.5 row underneath it: that is MYHaze&apos;s Real Feel.
+        with MYHaze&apos;s official DOE API. The rows underneath are this hour&apos;s readings for each pollutant: Real Feel is
+        the highest of them, nearly always the PM2.5 row.
         MYHaze updates twice an hour, so for a short while it can be an hour behind. IQAir also uses the US AQI,
         but it can draw on other monitors and update at other times, so its numbers can differ a little.
       </p>

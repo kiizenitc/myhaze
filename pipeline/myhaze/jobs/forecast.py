@@ -33,6 +33,7 @@ OUT_DIR = REPO_ROOT / "site-data"
 WEATHER_MAX_AGE = timedelta(hours=3)
 DEFAULT_SPREAD = (0.7, 1.4)  # p10/p50 and p90/p50 when a baseline without quantiles is shipped
 READING_MAX_AGE = timedelta(hours=2)
+OTHER_POLLUTANTS = ("pm10", "o3", "no2", "so2", "co")  # aqicn's US AQI numbers; with PM2.5 they make the overall AQI
 ARCHIVE_EVERY_H = 6
 WIND_BUDGET_S = 180  # the map's wind may use at most 3 minutes of an hourly run
 STATIC_WINDOW_DAYS = 60  # fire history used to recognise gas flares
@@ -115,7 +116,8 @@ def forecast_levels(rows: list[FeatureRow], model: tuple | None, cams_daily: dic
 def forecast_station(station: Station, now_hour: datetime, generated_at: datetime, observed: dict[datetime, float],
                      official_now: tuple[datetime, float] | None, weather: HourlyWeather | None,
                      levels: dict[int, tuple] | None, method: str, contrib: dict | None, row: FeatureRow | None,
-                     observed_daily_max: dict[date, float], cams_today: float | None = None) -> dict | None:
+                     observed_daily_max: dict[date, float], cams_today: float | None = None,
+                     others: dict[str, dict[datetime, float]] | None = None) -> dict | None:
     pm0, _from_hourly = pm_now(observed, official_now, now_hour)
     tomorrow = (levels or {}).get(1)
     if pm0 is None:  # no aqicn and no DOE: start from our own forecast rather than drop the station
@@ -143,8 +145,9 @@ def forecast_station(station: Station, now_hour: datetime, generated_at: datetim
                   trapped_window=when_phrase(trapped_at, now_hour) if trapped_at else None,
                   direction=direction) if row else []
     # "Estimated" means no live hourly reading to show or anchor on (no aqicn feed, or it is down).
-    return station_payload(station, generated_at, method, reading is None, now_block(reading, official_now), path,
-                           weather, official, closure, why, now_hour)
+    hour_others = {p: series[reading[0]] for p, series in (others or {}).items() if reading and reading[0] in series}
+    return station_payload(station, generated_at, method, reading is None, now_block(reading, official_now, hour_others),
+                           path, weather, official, closure, why, now_hour)
 
 
 def _cams_from_forecasts(latest) -> dict[tuple[str, date], float]:
@@ -188,6 +191,7 @@ def main(argv: list[str] | None = None) -> int:
             wind_field = wind_step(client, store, generated_at)
         observed = {sid: {t: aqicn_aqi_to_ugm3(v) for t, v in series.items()}
                     for sid, series in store.hourly_series("aqicn", "pm25_aqi", now_hour - timedelta(hours=30)).items()}
+        others = {p: store.hourly_series("aqicn", f"{p}_aqi", now_hour - READING_MAX_AGE) for p in OTHER_POLLUTANTS}
         official_now = store.latest_obs("doe", "api", now_hour - timedelta(hours=6))
         daily_max = store.doe_daily_max(today - timedelta(days=3))
         daily_pm = store.daily_pm25(today - timedelta(days=7), today)
@@ -211,7 +215,8 @@ def main(argv: list[str] | None = None) -> int:
                                        weather_latest.get(sid), levels.get(sid), methods.get(sid, "persistence"),
                                        contribs.get(sid), lead1.get(sid),
                                        {day: v for (x, day), v in daily_max.items() if x == sid},
-                                       cams_today=cams_daily.get((sid, today)))
+                                       cams_today=cams_daily.get((sid, today)),
+                                       others={p: series.get(sid, {}) for p, series in others.items()})
             if payload is not None:
                 payloads.append(payload)
                 entries.append(latest_entry(payload, s))

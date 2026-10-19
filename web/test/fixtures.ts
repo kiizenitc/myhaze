@@ -52,9 +52,10 @@ export function makeStation(id = "ZZ01A", options: { estimated?: boolean; name?:
     id, name: options.name ?? "Testville", state: options.state ?? "Selangor", generated_at: GENERATED,
     estimated, method: "model",
     now: estimated
-      ? { real_feel: null, real_feel_band: null, pm25: null, real_feel_hour: null, official_api: 140,
+      ? { real_feel: null, real_feel_band: null, main_pollutant: null, pm25: null, real_feel_hour: null, official_api: 140,
           official_band: "unhealthy", official_hour: "2026-10-15T02:00:00Z" }
-      : { real_feel: 214, real_feel_band: "very_unhealthy", pm25: 92.1, real_feel_hour: "2026-10-15T02:00:00Z",
+      : { real_feel: 214, real_feel_band: "very_unhealthy", main_pollutant: "pm25", pm25: 92.1,
+          real_feel_hour: "2026-10-15T02:00:00Z",
           official_api: 170, official_band: "unhealthy", official_hour: "2026-10-15T02:00:00Z" },
     hours: makeHours(), days: makeDays(),
     why: ["Fires upwind, mainly in Sumatra, are adding smoke.", "Rain expected tomorrow afternoon should help clear the air."],

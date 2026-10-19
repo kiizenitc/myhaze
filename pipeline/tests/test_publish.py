@@ -59,7 +59,8 @@ def test_station_payload_matches_the_contract():
     payload = sample_station()
     validate_station(payload)
     assert payload["now"] == {"real_feel": payload["now"]["real_feel"], "real_feel_band": payload["now"]["real_feel_band"],
-                              "pm25": 60.0, "real_feel_hour": "2026-10-15T15:00:00Z", "official_api": 120,
+                              "main_pollutant": "pm25", "pm25": 60.0, "real_feel_hour": "2026-10-15T15:00:00Z",
+                              "official_api": 120,
                               "official_band": "unhealthy", "official_hour": "2026-10-15T15:00:00Z"}
     entry = latest_entry(payload, KLANG)
     assert len(entry["next24"]) == 24 and entry["lat"] == 3.04
@@ -90,6 +91,21 @@ def test_real_feel_now_is_the_pm25_number_aqicn_shows():
     block = now_block((NOW, aqicn_aqi_to_ugm3(130)), (NOW, 155.0))
     assert (block["real_feel"], block["real_feel_band"]) == (130, "unhealthy")
     assert (block["official_api"], block["official_band"]) == (155, "unhealthy")
+
+
+def test_real_feel_now_is_the_highest_of_the_hours_pollutants():
+    block = now_block((NOW, aqicn_aqi_to_ugm3(40)), (NOW, 60.0), {"o3": 72.0, "pm10": 30.0})
+    assert (block["real_feel"], block["real_feel_band"], block["main_pollutant"]) == (72, "moderate", "o3")
+    assert block["pm25"] == round(aqicn_aqi_to_ugm3(40), 1)
+
+
+def test_pm25_is_named_when_it_leads():
+    block = now_block((NOW, aqicn_aqi_to_ugm3(130)), (NOW, 155.0), {"pm10": 60.0})
+    assert (block["real_feel"], block["main_pollutant"]) == (130, "pm25")
+
+
+def test_no_reading_names_no_pollutant():
+    assert now_block(None, (NOW, 155.0), {"o3": 20.0})["main_pollutant"] is None
 
 
 def test_forecast_hours_show_real_feel_on_aqicns_scale():

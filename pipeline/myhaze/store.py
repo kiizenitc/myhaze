@@ -132,7 +132,7 @@ class Store:
             "where day between %s and %s order by day, lat_bin, lon_bin", (start, end)).fetchall()
         return [FireCell(day, float(lat), float(lon), float(frp), int(n)) for day, lat, lon, frp, n in rows]
 
-    _SERIES_COLUMNS = {"api", "pm25_aqi", "pm10_aqi"}
+    _SERIES_COLUMNS = {"api", "pm25_aqi", "pm10_aqi", "o3_aqi", "no2_aqi", "so2_aqi", "co_aqi"}
 
     def hourly_series(self, source: str, column: str, since: datetime,
                       param_symbol: str | None = None) -> dict[str, dict[datetime, float]]:

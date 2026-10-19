@@ -2,9 +2,12 @@
 
 ## Two scales
 
-- **Real Feel** is one hour's PM2.5 at a station on aqicn's own US AQI scale (the US EPA 2012 table). It is the
-  same number aqicn.org shows in a station's PM2.5 row for that hour. The map, the 48-hour forecast, the day plan,
-  the backtest and the live track record all use it.
+- **Real Feel** is a station's overall hourly AQI: the highest of the US AQI numbers aqicn reports for that hour's
+  PM2.5, PM10, ozone, nitrogen dioxide, sulphur dioxide and carbon monoxide (aqicn's own scale; for PM2.5 the US EPA
+  2012 table). The map, the 48-hour forecast, the day plan, the backtest and the live track record all use it.
+  Only PM2.5 is forecast: in 6,076 of 6,100 station-hours from 15 to 19 Oct 2026 it was the highest pollutant, while
+  PM10 led in 13 and ozone in 11, by at most 10 points and never changing the band. When another pollutant leads,
+  the "Now" figure and the forecast's first hour show the overall figure.
 - **The official API** is DOE's 24-hour average on DOE's own PM2.5 table. MYHaze's official API forecast and the
   MOE closure indicator use it, so they follow DOE's numbers.
 

@@ -2,9 +2,12 @@ import type { Band } from "./bands";
 
 export type { Band };
 
+export type Pollutant = "pm25" | "pm10" | "o3" | "no2" | "so2" | "co";
+
 export interface Now {
   real_feel: number | null;
   real_feel_band: Band | null;
+  main_pollutant?: Pollutant | null; // the pollutant with the highest US AQI number this hour
   pm25: number | null;
   real_feel_hour: string | null;
   official_api: number | null;

@@ -17,7 +17,7 @@ The site informs; parents decide. It never tells a parent to keep a child home.
 |---|---|
 | Audience | Public, all Malaysian parents. English only. |
 | Headline numbers | Both: **Real Feel** (this hour's air) and **official DOE API** (24-hour average), side by side. Full 24-hour day, not just school hours. |
-| Scale | Malaysian band names for both numbers. Real Feel is on aqicn's own US AQI scale (owner decision, 19 Oct 2026: it equals the PM2.5 number aqicn shows); the official API and closure indicator are on DOE's calibrated scale. Real Feel must never be a 24-hour average. |
+| Scale | Malaysian band names for both numbers. Real Feel is the overall hourly AQI on aqicn's own US AQI scale (owner decisions, 19 Oct 2026: the highest of the hour's PM2.5, PM10, O3, NO2, SO2 and CO numbers aqicn shows); the official API and closure indicator are on DOE's calibrated scale. Real Feel must never be a 24-hour average. |
 | Location | Pick from the 68 DOE stations by list or map. **No GPS.** Several stations can be saved (home, school, tuition), stored only in the browser. |
 | Closure indicator | Shows whether MOE's published rules *would* trigger. Clearly labelled: MOE decides, follow official MOE announcements. |
 | Training data | **Malaysian air-quality data from July 2026 onward only.** Fires (Indonesia + Malaysia) and weather are inputs, not air-quality data. |
@@ -31,7 +31,7 @@ The site informs; parents decide. It never tells a parent to keep a child home.
 
 ## 2. Definitions
 
-- **Real Feel:** the PM2.5 concentration for *this one hour* at a station, expressed on aqicn's US AQI scale (until 19 Oct 2026: the Malaysian API scale), so it is the same PM2.5 number aqicn shows for that hour. It is computed by MYHaze, not an official DOE figure. It moves fast when smoke arrives.
+- **Real Feel:** the PM2.5 concentration for *this one hour* at a station, expressed on aqicn's US AQI scale (until 19 Oct 2026: the Malaysian API scale); for the current hour it is the overall AQI, the highest of that hour's pollutant numbers aqicn shows. Only PM2.5 is forecast. It is computed by MYHaze, not an official DOE figure. It moves fast when smoke arrives.
 - **Official API:** the number DOE publishes every hour. For PM2.5 it is computed from a **24-hour running average**, so it lags. This is what news, DOE and MOE use.
 - **Bands** (Malaysian API): Good 0–50 · Moderate 51–100 · Unhealthy 101–200 · Very unhealthy 201–300 · Hazardous >300. Every colour is always shown with its band word.
 - **Closure indicator:** the probability that MOE's published rules would be met (see §6.4). It is an indicator, not a prediction of what MOE will do.

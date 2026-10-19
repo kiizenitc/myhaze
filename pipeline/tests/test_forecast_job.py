@@ -122,3 +122,15 @@ def test_a_wind_failure_never_stops_the_forecast(monkeypatch, capsys):
     old = WindStore(NOW - timedelta(hours=4), {"times": ["old"], "u": [], "v": []})
     assert forecast.wind_step(None, old, NOW) == {"times": ["old"], "u": [], "v": []}
     assert "RuntimeError" in capsys.readouterr().err
+
+
+def test_the_now_hour_shows_the_overall_aqi_when_another_pollutant_leads():
+    from myhaze.convert import aqicn_aqi_to_ugm3
+
+    observed = {NOW - timedelta(hours=h): aqicn_aqi_to_ugm3(40) for h in range(24)}
+    payload = forecast_station(KLANG, NOW, NOW, observed, (NOW, 60.0), None, None, "persistence", None, None, {},
+                               others={"o3": {NOW: 72.0}, "pm10": {NOW - timedelta(hours=1): 99.0}})
+    validate_station(payload)
+    assert (payload["now"]["real_feel"], payload["now"]["main_pollutant"]) == (72, "o3")  # the hour's own readings only
+    assert (payload["hours"][0]["rf"], payload["hours"][0]["band"]) == (72, "moderate")
+    assert payload["hours"][1]["rf"] < 72  # only PM2.5 is forecast

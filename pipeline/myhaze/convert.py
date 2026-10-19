@@ -1,7 +1,8 @@
 """PM2.5 unit conversions: US AQI (what aqicn publishes) <-> µg/m³ <-> Malaysian API (DOE's scale).
 
-Real Feel is one hour's PM2.5 on aqicn's own US AQI scale, so it is the PM2.5 number aqicn shows for
-that station. The official API and the closure rule use DOE's table. DOE does not publish its PM2.5
+Real Feel puts one hour's PM2.5 on aqicn's own US AQI scale, so it matches the PM2.5 number aqicn shows
+for that station (publish.now_block adds the hour's other pollutants). The official API and the closure
+rule use DOE's table. DOE does not publish its PM2.5
 breakpoints online, so both tables are chosen by `python -m myhaze.jobs.calibrate` from archived
 readings and stored in calibration.json ("aqicn_table", and DOE's "my_table").
 """

@@ -24,3 +24,10 @@ test("an estimated station explains the missing reading and never prints null", 
   // Advice falls back to the official band (unhealthy), one band stricter for a sensitive child.
   expect(screen.getByText(ADVICE.very_unhealthy)).toBeInTheDocument();
 });
+
+test("names the pollutant that sets Real Feel when it is not PM2.5", () => {
+  const now = { ...makeStation().now, real_feel: 72, real_feel_band: "moderate" as const, main_pollutant: "o3" as const,
+    pm25: 9.6 };
+  render(<NowPanel now={now} sensitive={false} />);
+  expect(screen.getByText("Ozone is highest this hour · PM2.5 9.6 µg/m³ at 10:00am")).toBeInTheDocument();
+});

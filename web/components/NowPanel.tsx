@@ -1,8 +1,18 @@
 import { adviceFor } from "@/lib/bands";
 import { timeMYT } from "@/lib/format";
-import type { Now } from "@/lib/types";
+import type { Now, Pollutant } from "@/lib/types";
 
 import { BandPill } from "./BandPill";
+
+const POLLUTANT: Record<Pollutant, string> = {
+  pm25: "PM2.5", pm10: "PM10", o3: "Ozone", no2: "Nitrogen dioxide", so2: "Sulphur dioxide", co: "Carbon monoxide",
+};
+
+function readingLine(now: Now): string {
+  const at = now.real_feel_hour ? ` at ${timeMYT(now.real_feel_hour)}` : "";
+  const lead = now.main_pollutant && now.main_pollutant !== "pm25" ? `${POLLUTANT[now.main_pollutant]} is highest this hour · ` : "";
+  return `${lead}PM2.5 ${now.pm25} µg/m³${at}`;
+}
 
 export function NowPanel({ now, sensitive }: { now: Now; sensitive: boolean }) {
   const adviceBand = now.real_feel_band ?? now.official_band;
@@ -18,9 +28,7 @@ export function NowPanel({ now, sensitive }: { now: Now; sensitive: boolean }) {
                 <span className="text-5xl font-bold tabular-nums">{now.real_feel}</span>
                 <BandPill band={now.real_feel_band} />
               </p>
-              <p className="text-sm text-[var(--ink-2)]">
-                PM2.5 {now.pm25} µg/m³{now.real_feel_hour ? ` at ${timeMYT(now.real_feel_hour)}` : ""}
-              </p>
+              <p className="text-sm text-[var(--ink-2)]">{readingLine(now)}</p>
             </>
           ) : (
             <p className="text-[var(--ink-2)]">No hourly reading at this station right now.</p>

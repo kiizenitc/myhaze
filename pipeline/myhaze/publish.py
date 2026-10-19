@@ -128,10 +128,18 @@ def first_trapped(path: HourlyPath) -> datetime | None:
                  if trapped and pm is not None and ugm3_to_real_feel(pm) > 50 and 5 <= t.astimezone(MYT).hour <= 10), None)
 
 
-def now_block(reading: tuple[datetime, float] | None, official: tuple[datetime, float] | None) -> dict:
-    rf = round(ugm3_to_real_feel(reading[1])) if reading else None
+def now_block(reading: tuple[datetime, float] | None, official: tuple[datetime, float] | None,
+              others: dict[str, float] | None = None) -> dict:
+    """Real Feel is the hour's overall AQI: the highest of its pollutants' US AQI numbers, as aqicn reports them.
+
+    `others` holds the same hour's PM10, ozone, NO2, SO2 and CO numbers; PM2.5 comes from the reading itself."""
+    rf = main = None
+    if reading:
+        sub = {"pm25": ugm3_to_real_feel(reading[1]), **(others or {})}
+        main = max(sub, key=sub.get)
+        rf = round(sub[main])
     return {
-        "real_feel": rf, "real_feel_band": band(rf) if rf is not None else None,
+        "real_feel": rf, "real_feel_band": band(rf) if rf is not None else None, "main_pollutant": main,
         "pm25": round(reading[1], 1) if reading else None, "real_feel_hour": iso(reading[0]) if reading else None,
         "official_api": round(official[1]) if official else None,
         "official_band": band(official[1]) if official else None,
@@ -149,6 +157,10 @@ def station_payload(station: Station, generated_at: datetime, method: str, estim
     rf = [int(round(ugm3_to_real_feel(v))) for v in path.p50]
     rf_low = [int(round(ugm3_to_real_feel(v))) for v in path.p10]
     rf_high = [int(round(ugm3_to_real_feel(v))) for v in path.p90]
+    if now.get("main_pollutant") not in (None, "pm25") and rf and now["real_feel"] > rf[0]:
+        # Only PM2.5 is forecast; when another pollutant leads this hour, the first hour shows the overall figure.
+        rf[0] = now["real_feel"]
+        rf_high[0] = max(rf_high[0], rf[0])
     wx = {t: i for i, t in enumerate(weather.times)} if weather else {}
 
     def at(series: list | None, t: datetime):

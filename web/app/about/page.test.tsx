@@ -23,8 +23,8 @@ test("the forecast method has an anchor the map links to", () => {
 test("tells parents which aqicn number to compare with which MYHaze number", () => {
   render(<AboutPage />);
   const text = document.body.textContent ?? "";
-  for (const phrase of ["same PM2.5 number aqicn.org shows", "the big number at the top is DOE's official 24-hour API",
-    "Unhealthy for Sensitive Groups"]) {
+  for (const phrase of ["overall hourly AQI", "the big number at the top is DOE's official 24-hour API",
+    "Real Feel is the highest of them", "Unhealthy for Sensitive Groups"]) {
     expect(text).toContain(phrase);
   }
 });
