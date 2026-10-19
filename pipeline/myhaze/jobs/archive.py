@@ -55,7 +55,15 @@ def sync_stations(client, store, settings, now_utc: datetime) -> dict:
     mapping = None
     if settings.aqicn_token:
         try:
-            mapping = aqicn.match_stations(stations, aqicn.fetch_bounds(client, settings.aqicn_token))
+            candidates = aqicn.fetch_bounds(client, settings.aqicn_token)
+            mapping = aqicn.match_stations(stations, candidates)
+            missing = [s for s in stations if s.station_id not in mapping]
+            if missing:  # a close look for stations the thinned country-wide search left out
+                try:
+                    candidates += aqicn.fetch_near(client, settings.aqicn_token, missing)
+                    mapping = aqicn.match_stations(stations, candidates)
+                except FetchError as exc:
+                    detail["aqicn_near_error"] = str(exc)
             detail["aqicn_matched"] = len(mapping)
         except FetchError as exc:
             detail["aqicn_error"] = str(exc)

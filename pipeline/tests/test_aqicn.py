@@ -71,3 +71,15 @@ def test_parse_feed_ignores_malformed_readings():
                                         "iaqi": {"pm25": 60, "t": {"v": "x"}}}}
     obs = aqicn.parse_feed(payload, "CA01R")
     assert (obs.api, obs.pm25_aqi, obs.temp_c) == (50, None, None)
+
+
+def test_fetch_near_looks_in_a_small_official_box_around_each_station():
+    seen = []
+
+    def handler(request):
+        seen.append(dict(request.url.params))
+        return httpx.Response(200, json=fixtures.AQICN_BOUNDS)
+
+    got = aqicn.fetch_near(make_client(transport=httpx.MockTransport(handler)), "tok", [KANGAR])
+    assert seen[0]["latlng"] == "6.2799,100.0609,6.5799,100.3609" and seen[0]["networks"] == "official"
+    assert 3001 in {c.uid for c in got}

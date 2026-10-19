@@ -30,7 +30,7 @@ test("saved stations show as cards, in the order they were saved", async () => {
   render(<Home />);
   const names = await screen.findAllByRole("heading", { level: 3 });
   expect(names.map((h) => h.textContent)).toEqual(["Kampung Contoh", "Testville"]);
-  expect(screen.getAllByText(/Updated 10:10am/)).toHaveLength(2);
+  expect(screen.getAllByText(/Updated (Thu 15 Oct, )?10:10am/)).toHaveLength(2); // the date shows once the fixture is not from today
 });
 
 test("a failed load shows a friendly message, not a blank page", async () => {

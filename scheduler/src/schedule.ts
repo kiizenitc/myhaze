@@ -13,7 +13,7 @@ export function workflowsDue(at: Date): string[] {
   const hour = at.getUTCHours();
   const due: string[] = [];
   if (minute % 15 === 5) due.push("archive.yml"); // :05 :20 :35 :50
-  if (minute === 25) due.push("forecast.yml"); // after the :20 archive
+  if (minute === 25 || minute === 55) due.push("forecast.yml"); // after the :20 and :50 archives
   if (hour === 18 && minute === 30) due.push("verify.yml"); // 02:30 Malaysia time
   if (at.getUTCDay() === 6 && hour === 19 && minute === 0) due.push("train.yml"); // Sunday 03:00 Malaysia time
   return due;

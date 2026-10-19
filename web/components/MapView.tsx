@@ -9,7 +9,7 @@ import { BandPill } from "@/components/BandPill";
 import { StaleBanner } from "@/components/StaleBanner";
 import { BANDS } from "@/lib/bands";
 import { useData } from "@/lib/data";
-import { dateMYT, hourOfIso, weekdayDate } from "@/lib/format";
+import { dateMYT, hourOfIso, timeMYT, weekdayDate } from "@/lib/format";
 import type { Fires, MapData, WindData } from "@/lib/types";
 
 const STEP_MS = 500; // one forecast hour per half second: the 48 hours play in about 24 seconds
@@ -94,6 +94,9 @@ export function MapView() {
             {playing ? "■ Stop" : "▶ Play"}
           </button>
         </div>
+        <p className="text-xs text-[var(--ink-2)]">
+          {`Latest readings: ${hourOfIso(data.times[0])} (updated ${timeMYT(data.generated_at)})`}
+        </p>
         <input id="map-hour" type="range" min={0} max={last} step={1} value={at}
                onChange={(e) => {
                  setPlaying(false); // dragging the slider takes over from the time-lapse

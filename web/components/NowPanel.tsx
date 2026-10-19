@@ -29,10 +29,15 @@ export function NowPanel({ now, sensitive }: { now: Now; sensitive: boolean }) {
         <div>
           <p className="text-sm text-[var(--ink-2)]">Official DOE API · 24-hour average</p>
           {now.official_api !== null ? (
-            <p className="flex items-center gap-3">
-              <span className="text-3xl font-semibold tabular-nums">{now.official_api}</span>
-              <BandPill band={now.official_band} />
-            </p>
+            <>
+              <p className="flex items-center gap-3">
+                <span className="text-3xl font-semibold tabular-nums">{now.official_api}</span>
+                <BandPill band={now.official_band} />
+              </p>
+              {now.official_hour && (
+                <p className="text-sm text-[var(--ink-2)]">{`DOE's figure for ${timeMYT(now.official_hour)}`}</p>
+              )}
+            </>
           ) : (
             <p className="text-[var(--ink-2)]">DOE has not published a reading in the last few hours.</p>
           )}

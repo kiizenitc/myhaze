@@ -113,6 +113,24 @@ def fetch_bounds(client: httpx.Client, token: str) -> list[AqicnStation]:
     return parse_bounds(payload)
 
 
+NEAR_PAD_DEG = 0.15  # about 17 km either way
+NEAR_MAX_LOOKUPS = 12
+
+
+def fetch_near(client: httpx.Client, token: str, stations: list[Station]) -> list[AqicnStation]:
+    """aqicn's map/bounds thins out crowded areas, and differently from call to call, so the country-wide search
+    can miss a station (Ipoh's Jalan Tasek never shows in it). A small box around a DOE station lists every
+    aqicn station near it."""
+    found: list[AqicnStation] = []
+    for s in stations[:NEAR_MAX_LOOKUPS]:
+        box = (f"{s.lat - NEAR_PAD_DEG:.4f},{s.lon - NEAR_PAD_DEG:.4f},"
+               f"{s.lat + NEAR_PAD_DEG:.4f},{s.lon + NEAR_PAD_DEG:.4f}")
+        found += parse_bounds(get_json(client, f"{BASE}/map/bounds",
+                                       params={"latlng": box, "networks": "official", "token": token},
+                                       label="aqicn map/bounds near a station"))
+    return found
+
+
 def fetch_feed(client: httpx.Client, token: str, uid: int, station_id: str) -> Obs | None:
     payload = get_json(client, f"{BASE}/feed/@{uid}/", params={"token": token}, label="aqicn feed")
     return parse_feed(payload, station_id)

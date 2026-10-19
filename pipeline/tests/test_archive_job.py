@@ -280,3 +280,27 @@ def test_fires_step_stores_cells_once_per_hour():
 def test_fires_step_is_skipped_without_a_key():
     detail = archive.archive_fires(routed_client(HEALTHY, []), FakeStore(), SETTINGS, NOW)
     assert detail == {"status": "skipped", "reason": "FIRMS_MAP_KEY not set"}
+
+
+def test_stations_the_country_wide_aqicn_search_leaves_out_get_a_close_look():
+    # aqicn's map/bounds thins out crowded areas (Ipoh's Jalan Tasek only shows in a small box around it).
+    from myhaze.sources import aqicn
+
+    near = {"status": "ok", "data": [{"lat": 2.98, "lon": 101.47, "uid": 7007, "aqi": "160",
+                                      "station": {"name": "Johan Setia, Selangor, Malaysia",
+                                                  "time": "2026-10-15T08:00:00+08:00"}}]}
+    boxes = []
+
+    def handler(request):
+        if request.url.path.endswith("mapcaqm"):
+            return httpx.Response(200, json=fixtures.DOE_STATIONS)
+        if request.url.path.endswith("/map/bounds"):
+            boxes.append(request.url.params["latlng"])
+            country = request.url.params["latlng"] == aqicn.MALAYSIA_BOUNDS
+            return httpx.Response(200, json=fixtures.AQICN_BOUNDS if country else near)
+        return httpx.Response(404)
+
+    store = FakeStore()
+    archive.sync_stations(make_client(transport=httpx.MockTransport(handler)), store, SETTINGS, NOW)
+    assert store.aqicn_uids() == {"CA01R": 3001, "MCAQM001": 7007}
+    assert len(boxes) == 2  # one country-wide search, one close look for the station it left out

@@ -8,6 +8,7 @@ test("archive every 15 minutes, forecast at :25, verify and train at their Malay
   expect(due("2026-10-15T06:05:00Z")).toEqual(["archive.yml"]);
   expect(due("2026-10-15T06:50:00Z")).toEqual(["archive.yml"]);
   expect(due("2026-10-15T06:25:00Z")).toEqual(["forecast.yml"]);
+  expect(due("2026-10-15T06:55:00Z")).toEqual(["forecast.yml"]); // twice an hour: the site is never far behind
   expect(due("2026-10-15T06:10:00Z")).toEqual([]);
   expect(due("2026-10-15T18:30:00Z")).toEqual(["verify.yml"]);
   expect(due("2026-10-17T19:00:00Z")).toEqual(["train.yml"]); // Saturday 19:00 UTC = Sunday 03:00 in Malaysia

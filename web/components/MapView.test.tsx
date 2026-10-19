@@ -25,6 +25,7 @@ test("the time slider steps through the 48 hours in Malaysia time, with a band l
   render(<MapView />);
   const slider = await screen.findByRole("slider", { name: "Time" });
   expect(screen.getByText("Now · Thu 15 Oct 10am")).toBeInTheDocument();
+  expect(screen.getByText("Latest readings: 10am (updated 10:10am)")).toBeInTheDocument();
   fireEvent.change(slider, { target: { value: "14" } });
   expect(screen.getByTestId("map")).toHaveTextContent("hour 14");
   expect(screen.getByText("Forecast · Fri 16 Oct 12am")).toBeInTheDocument();
