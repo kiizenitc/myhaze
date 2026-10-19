@@ -52,4 +52,21 @@ def test_choose_method_falls_back_to_the_better_baseline():
     assert choose_method({"model": model, "persistence": {"band_accuracy": 0.80, "pod_unhealthy": 0.9},
                           "cams": {"band_accuracy": 0.60, "pod_unhealthy": 0.9}}) == "persistence"
     assert choose_method({"model": model, "persistence": {"band_accuracy": 0.50, "pod_unhealthy": 0.9},
-                          "cams": {"band_accuracy": 0.65, "pod_unhealthy": 0.96}}) == "cams"
+                          "cams": {"band_accuracy": 0.65, "pod_unhealthy": 0.98}}) == "cams"
+
+
+def test_a_clearly_better_model_is_not_dropped_over_a_tie_in_unhealthy_days_caught():
+    # 19 Oct 2026, tomorrow: CAMS caught 472 of 565 unhealthy days, the model 470, while the model got the band right
+    # on 84% of days against 78%
+    scores = {"model": {"band_accuracy": 0.8359, "pod_unhealthy": 0.8319},
+              "persistence": {"band_accuracy": 0.7318, "pod_unhealthy": 0.7912},
+              "cams": {"band_accuracy": 0.7806, "pod_unhealthy": 0.8354}}
+    assert choose_method(scores) == "model"
+
+
+def test_a_model_that_misses_clearly_more_unhealthy_days_is_not_used():
+    # 19 Oct 2026, the day after: CAMS caught 82% of unhealthy days, the model 78%
+    scores = {"model": {"band_accuracy": 0.7902, "pod_unhealthy": 0.7805},
+              "persistence": {"band_accuracy": 0.6498, "pod_unhealthy": 0.7239},
+              "cams": {"band_accuracy": 0.7718, "pod_unhealthy": 0.8230}}
+    assert choose_method(scores) == "cams"

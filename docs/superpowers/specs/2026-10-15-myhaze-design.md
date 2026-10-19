@@ -132,7 +132,7 @@ The 24-hour rolling mean of (observed past hours + forecast hours) → DOE break
   - false-alarm ratio;
   - MAE;
   - how often the truth falls inside the 10–90% range.
-- **Pass bar:** D+1 band accuracy ≥90% **and** POD(Unhealthy+) ≥90%, **and** A beats persistence and B on both.
+- **Pass bar:** D+1 band accuracy ≥90% **and** POD(Unhealthy+) ≥90%, **and** A beats persistence and B on both (owner decision, 19 Oct 2026: catching up to 1 point fewer unhealthy days than a baseline counts as a tie when A gets the band right more often).
 - **If the bar is not met by Monday:** launch with the best-performing method, publish its true numbers on "How accurate is this?", never claim 90%, and keep training as data accrues.
 - **Honest limits, stated on the site:** about 1,000 test station-days from one haze season gives roughly ±3–5 points of uncertainty. Hourly accuracy is proven only by the live Track record.
 - **Every issued forecast is archived and never overwritten.** A daily verification job scores yesterday's forecasts against observations; the results feed the Track record page.
